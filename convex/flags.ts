@@ -35,6 +35,17 @@ export const createFlag = mutation({
                 flagCount: pin.flagCount + 1,
                 flaggedByUsers: [...pin.flaggedByUsers, user._id],
             });
+        } else if (args.targetType === "deal") {
+            const dealId = args.targetId as Id<"deals">;
+            const deal = await ctx.db.get(dealId);
+            if (!deal) throw new Error("Deal not found");
+            if (deal.flaggedByUsers.includes(user._id)) {
+                throw new Error("You already flagged this deal");
+            }
+            await ctx.db.patch(dealId, {
+                flagCount: deal.flagCount + 1,
+                flaggedByUsers: [...deal.flaggedByUsers, user._id],
+            });
         }
 
         await ctx.db.insert("flags", {

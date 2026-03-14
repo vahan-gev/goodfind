@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as badges from "../badges.js";
 import type * as deals from "../deals.js";
 import type * as flags from "../flags.js";
 import type * as pins from "../pins.js";
@@ -20,6 +21,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  badges: typeof badges;
   deals: typeof deals;
   flags: typeof flags;
   pins: typeof pins;

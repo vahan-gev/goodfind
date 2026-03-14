@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { recomputeBadges } from "./badges";
 
 const pinType = v.union(
     v.literal("food_bank"),
@@ -33,7 +34,7 @@ export const create = mutation({
         if (!user) throw new Error("User not found");
 
         const now = Date.now();
-        return await ctx.db.insert("pins", {
+        const pinId = await ctx.db.insert("pins", {
             ownerId: user._id,
             type: args.type,
             name: args.name,
@@ -47,6 +48,8 @@ export const create = mutation({
             createdAt: now,
             updatedAt: now,
         });
+        await recomputeBadges(ctx, user._id);
+        return pinId;
     },
 });
 

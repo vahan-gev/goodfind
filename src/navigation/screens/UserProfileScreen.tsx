@@ -3,11 +3,12 @@ import {
     ActivityIndicator,
     Alert,
     Image,
+    ScrollView,
     StyleSheet,
     TouchableOpacity,
     View,
+    Text,
 } from "react-native";
-import { Text } from "@react-navigation/elements";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useQuery, useMutation } from "convex/react";
@@ -15,6 +16,7 @@ import { useAuth } from "@clerk/expo";
 import { api } from "../../../convex/_generated/api";
 import { ChevronLeft, ShieldBan, User } from "lucide-react-native";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { BadgesSection } from "../../components/BadgesSection";
 
 export function UserProfileScreen() {
     const route = useRoute<any>();
@@ -26,6 +28,9 @@ export function UserProfileScreen() {
         userId: userId as Id<"users">,
     });
     const pinCount = useQuery(api.users.getPinCount, {
+        userId: userId as Id<"users">,
+    });
+    const dealCount = useQuery(api.users.getDealCount, {
         userId: userId as Id<"users">,
     });
     const currentUser = useQuery(
@@ -87,7 +92,7 @@ export function UserProfileScreen() {
                     <ActivityIndicator size="large" />
                 </View>
             ) : (
-                <View style={styles.body}>
+                <ScrollView contentContainerStyle={styles.body}>
                     {profileUser.avatarUrl ? (
                         <Image
                             source={{ uri: profileUser.avatarUrl }}
@@ -104,9 +109,16 @@ export function UserProfileScreen() {
                         <Text style={styles.email}>{profileUser.email}</Text>
                     ) : null}
 
-                    <View style={styles.statBox}>
-                        <Text style={styles.statNum}>{pinCount ?? 0}</Text>
-                        <Text style={styles.statLabel}>Pins Created</Text>
+                    <View style={styles.statsRow}>
+                        <View style={styles.stat}>
+                            <Text style={styles.statNum}>{pinCount ?? 0}</Text>
+                            <Text style={styles.statLabel}>Pins Made</Text>
+                        </View>
+                        <View style={styles.statDivider} />
+                        <View style={styles.stat}>
+                            <Text style={styles.statNum}>{dealCount ?? 0}</Text>
+                            <Text style={styles.statLabel}>Deals Posted</Text>
+                        </View>
                     </View>
 
                     {isSignedIn && !isOwner && (
@@ -132,7 +144,9 @@ export function UserProfileScreen() {
                             </Text>
                         </TouchableOpacity>
                     )}
-                </View>
+
+                    <BadgesSection earnedBadges={profileUser.badges ?? []} showLocked={false} />
+                </ScrollView>
             )}
         </SafeAreaView>
     );
@@ -163,6 +177,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingTop: 48,
         paddingHorizontal: 32,
+        paddingBottom: 48,
         gap: 10,
     },
     avatar: { width: 96, height: 96, borderRadius: 48 },
@@ -176,8 +191,19 @@ const styles = StyleSheet.create({
     },
     name: { fontSize: 24, fontWeight: "700", color: "#111", marginTop: 8 },
     email: { fontSize: 14, color: "#666" },
-    statBox: { alignItems: "center", marginTop: 16 },
-    statNum: { fontSize: 28, fontWeight: "700", color: "#111" },
+    statsRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 16,
+        gap: 32,
+    },
+    stat: { alignItems: "center" },
+    statDivider: {
+        width: 1,
+        height: 32,
+        backgroundColor: "#e0e0e0",
+    },
+    statNum: { fontSize: 20, fontWeight: "700", color: "#111" },
     statLabel: { fontSize: 13, color: "#888", marginTop: 2 },
     blockBtn: {
         flexDirection: "row",
@@ -193,4 +219,5 @@ const styles = StyleSheet.create({
     blockBtnActive: { backgroundColor: "#DC2626", borderColor: "#DC2626" },
     blockBtnText: { fontSize: 16, fontWeight: "600", color: "#DC2626" },
     blockBtnTextActive: { color: "#fff" },
+
 });

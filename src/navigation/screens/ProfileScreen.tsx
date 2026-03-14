@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
+import { BadgesSection } from "../../components/BadgesSection";
 
 function SignInScreen() {
     return (
@@ -34,6 +35,14 @@ function UserProfile() {
         api.users.currentUser,
         isAuthenticated ? {} : "skip",
     );
+    const pinCount = useQuery(
+        api.users.getPinCount,
+        convexUser?._id ? { userId: convexUser._id } : "skip",
+    );
+    const dealCount = useQuery(
+        api.users.getDealCount,
+        convexUser?._id ? { userId: convexUser._id } : "skip",
+    );
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -49,7 +58,6 @@ function UserProfile() {
     const avatarUrl = convexUser?.avatarUrl ?? user?.imageUrl;
     const email = user?.primaryEmailAddress?.emailAddress;
     const bio = convexUser?.bio;
-    const savedCount = convexUser?.savedPins?.length ?? 0;
 
     return (
         <ScrollView contentContainerStyle={styles.profileContainer}>
@@ -73,10 +81,17 @@ function UserProfile() {
 
             <View style={styles.statsRow}>
                 <View style={styles.stat}>
-                    <Text style={styles.statNumber}>{savedCount}</Text>
-                    <Text style={styles.statLabel}>Saved Pins</Text>
+                    <Text style={styles.statNumber}>{pinCount ?? 0}</Text>
+                    <Text style={styles.statLabel}>Pins Made</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.stat}>
+                    <Text style={styles.statNumber}>{dealCount ?? 0}</Text>
+                    <Text style={styles.statLabel}>Deals Posted</Text>
                 </View>
             </View>
+
+            <BadgesSection earnedBadges={convexUser?.badges ?? []} />
 
             <TouchableOpacity
                 style={styles.signOutButton}
@@ -169,11 +184,17 @@ const styles = StyleSheet.create({
     },
     statsRow: {
         flexDirection: "row",
+        alignItems: "center",
         marginTop: 16,
         gap: 32,
     },
     stat: {
         alignItems: "center",
+    },
+    statDivider: {
+        width: 1,
+        height: 32,
+        backgroundColor: "#e0e0e0",
     },
     statNumber: {
         fontSize: 20,

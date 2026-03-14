@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { recomputeBadges } from "./badges";
 
 export const store = mutation({
     args: {},
@@ -62,6 +63,7 @@ export const getById = query({
             displayName: user.displayName,
             email: user.email,
             avatarUrl: user.avatarUrl,
+            badges: user.badges ?? [],
         };
     },
 });
@@ -74,6 +76,17 @@ export const getPinCount = query({
             .filter((q) => q.eq(q.field("ownerId"), args.userId))
             .collect();
         return pins.length;
+    },
+});
+
+export const getDealCount = query({
+    args: { userId: v.id("users") },
+    handler: async (ctx, args) => {
+        const deals = await ctx.db
+            .query("deals")
+            .filter((q) => q.eq(q.field("authorId"), args.userId))
+            .collect();
+        return deals.length;
     },
 });
 
@@ -95,6 +108,8 @@ export const toggleSavePin = mutation({
             : [...user.savedPins, args.pinId];
 
         await ctx.db.patch(user._id, { savedPins: updatedPins });
+        const pin = await ctx.db.get(args.pinId);
+        if (pin) await recomputeBadges(ctx, pin.ownerId);
         return !isSaved;
     },
 });

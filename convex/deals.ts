@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { recomputeBadges } from "./badges";
 
 const dayOfWeek = v.union(
     v.literal("monday"),
@@ -52,8 +53,36 @@ export const create = mutation({
             deals: [...pin.deals, dealId],
             updatedAt: Date.now(),
         });
-
+        await recomputeBadges(ctx, user._id);
         return dealId;
+    },
+});
+
+export const remove = mutation({
+    args: { dealId: v.id("deals") },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Not authenticated");
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+            .unique();
+        if (!user) throw new Error("User not found");
+
+        const deal = await ctx.db.get(args.dealId);
+        if (!deal) throw new Error("Deal not found");
+        if (deal.authorId !== user._id) throw new Error("Not the author");
+
+        const pin = await ctx.db.get(deal.pinId);
+        if (pin) {
+            await ctx.db.patch(deal.pinId, {
+                deals: pin.deals.filter((id) => id !== args.dealId),
+                updatedAt: Date.now(),
+            });
+        }
+        await ctx.db.delete(args.dealId);
+        await recomputeBadges(ctx, user._id);
     },
 });
 
@@ -66,6 +95,17 @@ export const listByPin = query({
             .filter((q) => q.eq(q.field("pinId"), args.pinId))
             .order("desc")
             .collect();
-        return allDeals.filter((d) => !d.schedule?.expiresAt || d.schedule.expiresAt > now);
+        const filtered = allDeals.filter((d) => !d.schedule?.expiresAt || d.schedule.expiresAt > now);
+        const withAuthors = await Promise.all(
+            filtered.map(async (deal) => {
+                const author = await ctx.db.get(deal.authorId);
+                return {
+                    ...deal,
+                    authorDisplayName: author?.displayName ?? "Unknown",
+                    authorAvatarUrl: author?.avatarUrl,
+                };
+            }),
+        );
+        return withAuthors;
     },
 });

@@ -10,6 +10,7 @@ export default defineSchema({
         bio: v.optional(v.string()),
         savedPins: v.array(v.id("pins")),
         blockedUsers: v.optional(v.array(v.id("users"))),
+        badges: v.optional(v.array(v.string())),
         createdAt: v.number(),
     }).index("by_clerk_id", ["clerkId"]),
     pins: defineTable({

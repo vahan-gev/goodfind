@@ -33,7 +33,7 @@ import { useAuth } from "@clerk/expo";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { PIN_CATEGORY_MAP, type PinType } from "../constants/pinCategories";
-import type { Doc } from "../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../convex/_generated/dataModel";
 
 const DAYS = [
     "monday",
@@ -78,6 +78,7 @@ function formatDaysLabel(days?: Day[]): string {
 }
 
 type ViewState = "main" | "addDeal" | "report";
+type FlagTarget = { type: "pin"; id: string } | { type: "deal"; id: string };
 
 interface Props {
     pin: Doc<"pins"> | null;
@@ -109,10 +110,13 @@ export function PinDetailModal({
     const toggleSave = useMutation(api.users.toggleSavePin);
     const removePin = useMutation(api.pins.remove);
     const createDeal = useMutation(api.deals.create);
+    const removeDeal = useMutation(api.deals.remove);
     const flagMutation = useMutation(api.flags.createFlag);
 
     const [view, setView] = useState<ViewState>("main");
     const [justReported, setJustReported] = useState(false);
+    const [justReportedDealIds, setJustReportedDealIds] = useState<Set<string>>(new Set());
+    const [flagTarget, setFlagTarget] = useState<FlagTarget | null>(null);
 
     const [dealTitle, setDealTitle] = useState("");
     const [dealDesc, setDealDesc] = useState("");
@@ -150,6 +154,8 @@ export function PinDetailModal({
     const handleClose = () => {
         setView("main");
         setJustReported(false);
+        setJustReportedDealIds(new Set());
+        setFlagTarget(null);
         resetDealForm();
         onClose();
     };
@@ -210,6 +216,23 @@ export function PinDetailModal({
         }
     };
 
+    const handleDeleteDeal = (dealId: Id<"deals">) => {
+        Alert.alert("Delete Deal", "This cannot be undone.", [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Delete",
+                style: "destructive",
+                onPress: async () => {
+                    try {
+                        await removeDeal({ dealId });
+                    } catch (e: any) {
+                        Alert.alert("Error", e.message ?? "Failed");
+                    }
+                },
+            },
+        ]);
+    };
+
     const handleDelete = () => {
         Alert.alert("Delete Pin", "This cannot be undone.", [
             { text: "Cancel", style: "cancel" },
@@ -259,18 +282,20 @@ export function PinDetailModal({
     };
 
     const handleSubmitFlag = async () => {
-        if (!flagNote.trim()) return;
+        if (!flagNote.trim() || !flagTarget) return;
         setFlagSubmitting(true);
         try {
             await flagMutation({
-                targetId: pin._id,
-                targetType: "pin",
+                targetId: flagTarget.id,
+                targetType: flagTarget.type,
                 reason: flagReason,
                 note: flagNote.trim(),
             });
             setFlagReason("spam");
             setFlagNote("");
-            setJustReported(true);
+            if (flagTarget.type === "pin") setJustReported(true);
+            else setJustReportedDealIds((prev) => new Set([...prev, flagTarget.id]));
+            setFlagTarget(null);
             setView("main");
             Alert.alert(
                 "Reported",
@@ -287,7 +312,9 @@ export function PinDetailModal({
         view === "addDeal"
             ? "Add Deal"
             : view === "report"
-              ? "Report Pin"
+              ? flagTarget?.type === "deal"
+                ? "Report Deal"
+                : "Report Pin"
               : "Pin Details";
 
     return (
@@ -303,6 +330,7 @@ export function PinDetailModal({
                         <TouchableOpacity
                             onPress={() => {
                                 if (view === "addDeal") resetDealForm();
+                                if (view === "report") setFlagTarget(null);
                                 setView("main");
                             }}
                             style={st.headerSideBtn}
@@ -356,18 +384,47 @@ export function PinDetailModal({
                                 </View>
                             </View>
                             {isSignedIn && (
-                                <TouchableOpacity
-                                    onPress={handleToggleSave}
-                                    style={st.actionCircle}
-                                    activeOpacity={0.6}
-                                >
-                                    <Bookmark
-                                        size={22}
-                                        color={isSaved ? "#4F46E5" : "#999"}
-                                        fill={isSaved ? "#4F46E5" : "none"}
-                                        strokeWidth={2}
-                                    />
-                                </TouchableOpacity>
+                                <View style={st.actionRow}>
+                                    <TouchableOpacity
+                                        onPress={handleToggleSave}
+                                        style={st.actionCircle}
+                                        activeOpacity={0.6}
+                                    >
+                                        <Bookmark
+                                            size={22}
+                                            color={isSaved ? "#4F46E5" : "#999"}
+                                            fill={isSaved ? "#4F46E5" : "none"}
+                                            strokeWidth={2}
+                                        />
+                                    </TouchableOpacity>
+                                    {!isOwner && (
+                                        isReported ? (
+                                            <View style={st.actionCircle}>
+                                                <Flag size={22} color="#999" />
+                                            </View>
+                                        ) : (
+                                            <TouchableOpacity
+                                                style={st.actionCircle}
+                                                onPress={() => {
+                                                    setFlagTarget({ type: "pin", id: pin._id });
+                                                    setView("report");
+                                                }}
+                                                activeOpacity={0.6}
+                                            >
+                                                <Flag size={22} color="#F59E0B" />
+                                            </TouchableOpacity>
+                                        )
+                                    )}
+                                    {isOwner && (
+                                        <TouchableOpacity
+                                            style={st.actionCircle}
+                                            onPress={handleDelete}
+                                            activeOpacity={0.6}
+                                        >
+                                            <Trash2 size={22} color="#DC2626" />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
                             )}
                         </View>
 
@@ -422,43 +479,6 @@ export function PinDetailModal({
                             <Text style={st.authorHint}>View profile</Text>
                         </TouchableOpacity>
 
-                        {isSignedIn && (
-                            <View style={st.actionRow}>
-                                {!isReported && !isOwner && (
-                                    <TouchableOpacity
-                                        style={st.flagBtn}
-                                        onPress={() => setView("report")}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Flag size={14} color="#F59E0B" />
-                                        <Text style={st.flagBtnText}>
-                                            Report
-                                        </Text>
-                                    </TouchableOpacity>
-                                )}
-                                {isReported && !isOwner && (
-                                    <View style={st.reportedBadge}>
-                                        <Flag size={13} color="#DC2626" />
-                                        <Text style={st.reportedText}>
-                                            Reported
-                                        </Text>
-                                    </View>
-                                )}
-                                {isOwner && (
-                                    <TouchableOpacity
-                                        style={st.deleteBtn}
-                                        onPress={handleDelete}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Trash2 size={14} color="#DC2626" />
-                                        <Text style={st.deleteBtnText}>
-                                            Delete
-                                        </Text>
-                                    </TouchableOpacity>
-                                )}
-                            </View>
-                        )}
-
                         <View style={st.sectionHeader}>
                             <Tag size={16} color="#4F46E5" />
                             <Text style={st.sectionTitle}>Deals</Text>
@@ -475,11 +495,65 @@ export function PinDetailModal({
                         </View>
 
                         {deals && deals.length > 0 ? (
-                            deals.map((deal) => (
+                            deals.map((deal) => {
+                                const isDealAuthor = currentUser?._id === deal.authorId;
+                                const isDealReported =
+                                    (currentUser?._id && deal.flaggedByUsers.includes(currentUser._id)) ||
+                                    justReportedDealIds.has(deal._id);
+                                return (
                                 <View key={deal._id} style={st.dealCard}>
-                                    <Text style={st.dealTitle}>
-                                        {deal.title}
-                                    </Text>
+                                    <View style={st.dealAuthorRow}>
+                                        {(deal as any).authorAvatarUrl ? (
+                                            <Image
+                                                source={{ uri: (deal as any).authorAvatarUrl }}
+                                                style={st.dealAuthorAvatar}
+                                            />
+                                        ) : (
+                                            <View style={st.dealAuthorAvatarPlaceholder}>
+                                                <User size={12} color="#fff" />
+                                            </View>
+                                        )}
+                                        <Text style={st.dealAuthorName}>
+                                            {(deal as any).authorDisplayName ?? "Unknown"}
+                                        </Text>
+                                    </View>
+                                    <View style={st.dealCardHeader}>
+                                        <Text style={st.dealTitle}>
+                                            {deal.title}
+                                        </Text>
+                                        {isSignedIn && (
+                                            <View style={st.dealActions}>
+                                                {!isDealAuthor && (
+                                                    isDealReported ? (
+                                                        <View style={st.actionCircle}>
+                                                            <Flag size={20} color="#999" />
+                                                        </View>
+                                                    ) : (
+                                                        <TouchableOpacity
+                                                            style={st.actionCircle}
+                                                            onPress={() => {
+                                                                setFlagTarget({ type: "deal", id: deal._id });
+                                                                setView("report");
+                                                            }}
+                                                            activeOpacity={0.6}
+                                                        >
+                                                            <Flag size={20} color="#F59E0B" />
+                                                        </TouchableOpacity>
+                                                    )
+                                                )}
+                                                {isDealAuthor && (
+                                                    <TouchableOpacity
+                                                        style={st.actionCircle}
+                                                        onPress={() => handleDeleteDeal(deal._id)}
+                                                        activeOpacity={0.6}
+                                                    >
+                                                        <Trash2 size={20} color="#DC2626" />
+                                                    </TouchableOpacity>
+                                                )}
+                                            </View>
+                                        )}
+                                    </View>
+                                    
                                     <Text style={st.dealDesc}>
                                         {deal.description}
                                     </Text>
@@ -511,7 +585,8 @@ export function PinDetailModal({
                                         )}
                                     </View>
                                 </View>
-                            ))
+                                );
+                            })
                         ) : (
                             <Text style={st.emptyDeals}>
                                 No deals yet — be the first to add one!
@@ -664,11 +739,11 @@ export function PinDetailModal({
                         <TouchableOpacity
                             style={[
                                 st.flagSubmitBtn,
-                                (!flagNote.trim() || flagSubmitting) &&
+                                (!flagNote.trim() || !flagTarget || flagSubmitting) &&
                                     st.submitBtnDisabled,
                             ]}
                             onPress={handleSubmitFlag}
-                            disabled={!flagNote.trim() || flagSubmitting}
+                            disabled={!flagNote.trim() || !flagTarget || flagSubmitting}
                             activeOpacity={0.8}
                         >
                             {flagSubmitting ? (
@@ -794,43 +869,7 @@ const st = StyleSheet.create({
     },
     authorName: { flex: 1, fontSize: 15, fontWeight: "600", color: "#222" },
     authorHint: { fontSize: 12, color: "#4F46E5", fontWeight: "500" },
-    actionRow: { flexDirection: "row", gap: 10, marginBottom: 8 },
-    flagBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: "#F59E0B",
-        backgroundColor: "#FFFBEB",
-    },
-    flagBtnText: { color: "#B45309", fontSize: 13, fontWeight: "600" },
-    reportedBadge: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 5,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
-        backgroundColor: "#FEF2F2",
-        borderWidth: 1,
-        borderColor: "#FECACA",
-    },
-    reportedText: { color: "#DC2626", fontSize: 13, fontWeight: "600" },
-    deleteBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: "#DC2626",
-        backgroundColor: "#FEF2F2",
-    },
-    deleteBtnText: { color: "#DC2626", fontSize: 13, fontWeight: "600" },
+    actionRow: { flexDirection: "row", gap: 8 },
     sectionHeader: {
         flexDirection: "row",
         alignItems: "center",
@@ -864,8 +903,31 @@ const st = StyleSheet.create({
         padding: 14,
         marginBottom: 10,
     },
-    dealTitle: { fontSize: 15, fontWeight: "700", color: "#222" },
-    dealDesc: { fontSize: 14, color: "#555", marginTop: 4, lineHeight: 20 },
+    dealCardHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
+    },
+    dealActions: { flexDirection: "row", gap: 8 },
+    dealTitle: { fontSize: 15, fontWeight: "700", color: "#222", flex: 1 },
+    dealAuthorRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        marginTop: 6,
+    },
+    dealAuthorAvatar: { width: 24, height: 24, borderRadius: 12 },
+    dealAuthorAvatarPlaceholder: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: "#4F46E5",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    dealAuthorName: { fontSize: 12, color: "#666", fontWeight: "500" },
+    dealDesc: { fontSize: 14, color: "#555", marginTop: 6, lineHeight: 20 },
     dealMeta: {
         flexDirection: "row",
         flexWrap: "wrap",

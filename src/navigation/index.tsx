@@ -11,6 +11,7 @@ import { Bookmark, Map, User } from "lucide-react-native";
 import { MapScreen } from "./screens/MapScreen";
 import { SavedScreen } from "./screens/SavedScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
+import { UserProfileScreen } from "./screens/UserProfileScreen";
 
 const HomeTabs = createBottomTabNavigator({
     screenOptions: {
@@ -51,6 +52,12 @@ const RootStack = createNativeStackNavigator({
             screen: HomeTabs,
             options: {
                 title: "Home",
+                headerShown: false,
+            },
+        },
+        UserProfile: {
+            screen: UserProfileScreen,
+            options: {
                 headerShown: false,
             },
         },

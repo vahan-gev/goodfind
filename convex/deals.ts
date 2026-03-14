@@ -16,12 +16,8 @@ export const create = mutation({
         pinId: v.id("pins"),
         title: v.string(),
         description: v.string(),
-        schedule: v.object({
-            days: dayOfWeek,
-            startTime: v.string(),
-            endTime: v.string(),
-            expiresAt: v.number(),
-        }),
+        days: v.optional(v.array(dayOfWeek)),
+        expiresAt: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -36,12 +32,16 @@ export const create = mutation({
         const pin = await ctx.db.get(args.pinId);
         if (!pin) throw new Error("Pin not found");
 
+        const schedule: { days?: typeof args.days; expiresAt?: number } = {};
+        if (args.days && args.days.length > 0) schedule.days = args.days;
+        if (args.expiresAt) schedule.expiresAt = args.expiresAt;
+
         const dealId = await ctx.db.insert("deals", {
             pinId: args.pinId,
             authorId: user._id,
             title: args.title,
             description: args.description,
-            schedule: args.schedule,
+            schedule,
             flagCount: 0,
             flaggedByUsers: [],
             upvotes: [],
@@ -60,10 +60,12 @@ export const create = mutation({
 export const listByPin = query({
     args: { pinId: v.id("pins") },
     handler: async (ctx, args) => {
-        return await ctx.db
+        const now = Date.now();
+        const allDeals = await ctx.db
             .query("deals")
             .filter((q) => q.eq(q.field("pinId"), args.pinId))
             .order("desc")
             .collect();
+        return allDeals.filter((d) => !d.schedule?.expiresAt || d.schedule.expiresAt > now);
     },
 });

@@ -4,12 +4,12 @@ import { api } from "../../../convex/_generated/api";
 import React, { useEffect } from "react";
 import {
     StyleSheet,
+    Text,
     View,
     TouchableOpacity,
     Image,
     ScrollView,
 } from "react-native";
-import { Text } from "@react-navigation/elements";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 

@@ -18,6 +18,7 @@ import MapView, {
 import * as Location from "expo-location";
 import { LocateFixed, MapPin, Search, X } from "lucide-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import BottomSheet, {
     BottomSheetScrollView,
     BottomSheetTextInput,
@@ -37,6 +38,8 @@ import type { Doc } from "../../../convex/_generated/dataModel";
 
 export function MapScreen() {
     const mapRef = useRef<MapView>(null);
+    const navigation = useNavigation();
+    const route = useRoute<any>();
     const [initialRegion, setInitialRegion] = useState<Region | null>(null);
     const latestLocation = useRef<{
         latitude: number;
@@ -115,6 +118,79 @@ export function MapScreen() {
             sub?.remove();
         };
     }, []);
+
+    useEffect(() => {
+        const params = route.params as any;
+        if (!params?.focusCoordinates) return;
+        const { latitude, longitude } = params.focusCoordinates;
+        mapRef.current?.animateToRegion(
+            { latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 },
+            600,
+        );
+    }, [(route.params as any)?.focusTimestamp]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => {
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = setTimeout(() => {
+            const query = searchQuery.trim();
+            if (!query || !pins) return;
+
+            const q = query.toLowerCase();
+            const blocked = currentUser?.blockedUsers ?? [];
+            const results = pins
+                .filter((p) => !blocked.includes(p.ownerId))
+                .filter(
+                    (p) =>
+                        p.name.toLowerCase().includes(q) ||
+                        p.address?.toLowerCase().includes(q) ||
+                        p.type.replace("_", " ").includes(q),
+                );
+
+            if (results.length === 0) {
+                if (latestLocation.current) {
+                    mapRef.current?.animateToRegion(
+                        {
+                            ...latestLocation.current,
+                            latitudeDelta: 0.05,
+                            longitudeDelta: 0.05,
+                        },
+                        500,
+                    );
+                }
+                return;
+            }
+
+            const userLoc = latestLocation.current;
+            let target = results[0];
+            if (userLoc) {
+                let minDist = Infinity;
+                for (const pin of results) {
+                    const dlat =
+                        pin.coordinates.latitude - userLoc.latitude;
+                    const dlng =
+                        pin.coordinates.longitude - userLoc.longitude;
+                    const d = dlat * dlat + dlng * dlng;
+                    if (d < minDist) {
+                        minDist = d;
+                        target = pin;
+                    }
+                }
+            }
+
+            mapRef.current?.animateToRegion(
+                {
+                    ...target.coordinates,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                },
+                500,
+            );
+        }, 600);
+        return () => {
+            if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        };
+    }, [searchQuery, pins, currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const reverseGeocode = useCallback(async (coords: LatLng) => {
         try {
@@ -197,6 +273,8 @@ export function MapScreen() {
                 isPublic: true,
             });
             addSheetRef.current?.close();
+            setSearchQuery("")
+            setSearchFocused(false);
             resetAddForm();
         } catch (err: any) {
             Alert.alert("Error", err.message ?? "Failed to create pin");
@@ -239,7 +317,7 @@ export function MapScreen() {
                             anchor={{ x: 0.5, y: 1 }}
                             onPress={() => handleMarkerPress(pin)}
                         >
-                            <PIcon width={40} height={46} />
+                            <PIcon width={70} />
                         </Marker>
                     );
                 })}
@@ -250,7 +328,6 @@ export function MapScreen() {
                 )}
             </MapView>
 
-            {/* Search Bar */}
             <View style={styles.searchContainer}>
                 <View
                     style={[
@@ -288,7 +365,6 @@ export function MapScreen() {
                 <LocateFixed size={24} color="#007AFF" />
             </TouchableOpacity>
 
-            {/* Add Pin Sheet */}
             <BottomSheet
                 ref={addSheetRef}
                 index={-1}
@@ -411,13 +487,17 @@ export function MapScreen() {
                 )}
             </BottomSheet>
 
-            {/* Pin Detail Modal */}
             <PinDetailModal
                 pin={selectedPin}
                 visible={detailVisible}
                 onClose={() => {
                     setDetailVisible(false);
                     setSelectedPin(null);
+                }}
+                onViewProfile={(userId) => {
+                    setDetailVisible(false);
+                    setSelectedPin(null);
+                    (navigation as any).navigate("UserProfile", { userId });
                 }}
             />
         </GestureHandlerRootView>

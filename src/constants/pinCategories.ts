@@ -26,9 +26,7 @@ export type PinType =
 export interface PinCategory {
     type: PinType;
     label: string;
-    /** Map marker SVG */
     pinIcon: FC<SvgProps>;
-    /** UI icon SVG (modals, cards, chips) */
     icon: FC<SvgProps>;
     color: string;
 }

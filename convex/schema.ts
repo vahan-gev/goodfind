@@ -43,18 +43,20 @@ export default defineSchema({
         title: v.string(),
         description: v.string(),
         schedule: v.object({
-            days: v.union(
-                v.literal("monday"),
-                v.literal("tuesday"),
-                v.literal("wednesday"),
-                v.literal("thursday"),
-                v.literal("friday"),
-                v.literal("saturday"),
-                v.literal("sunday"),
+            days: v.optional(
+                v.array(
+                    v.union(
+                        v.literal("monday"),
+                        v.literal("tuesday"),
+                        v.literal("wednesday"),
+                        v.literal("thursday"),
+                        v.literal("friday"),
+                        v.literal("saturday"),
+                        v.literal("sunday"),
+                    ),
+                ),
             ),
-            startTime: v.string(),
-            endTime: v.string(),
-            expiresAt: v.number(),
+            expiresAt: v.optional(v.number()),
         }),
         flagCount: v.number(),
         flaggedByUsers: v.array(v.id("users")),

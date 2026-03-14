@@ -7,13 +7,14 @@ import {
     Alert,
     ScrollView,
     StyleSheet,
+    Text,
     TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
-import { Text } from "@react-navigation/elements";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Bookmark, MapPinned, Search, X } from "lucide-react-native";
+import { Bookmark, Map, MapPinned, Search, X } from "lucide-react-native";
+import { useNavigation } from "@react-navigation/native";
 import { PIN_CATEGORY_MAP, type PinType } from "../../constants/pinCategories";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 import { PinDetailModal } from "../../components/PinDetailModal";
@@ -21,6 +22,7 @@ import type { Doc } from "../../../convex/_generated/dataModel";
 
 export function SavedScreen() {
     const { isSignedIn } = useAuth();
+    const navigation = useNavigation();
     const currentUser = useQuery(api.users.currentUser, isSignedIn ? {} : "skip");
     const savedPins = useQuery(
         api.pins.getByIds,
@@ -105,7 +107,6 @@ export function SavedScreen() {
         <SafeAreaView style={styles.container}>
             <Text style={styles.screenTitle}>Saved Pins</Text>
 
-            {/* Search */}
             <View style={styles.searchWrapper}>
                 <View style={styles.searchBar}>
                     <Search size={18} color="#888" />
@@ -161,13 +162,28 @@ export function SavedScreen() {
                                             </View>
                                         ) : null}
                                     </View>
-                                    <TouchableOpacity
-                                        style={styles.unsaveButton}
-                                        onPress={(e) => { e.stopPropagation(); handleUnsave(pin._id); }}
-                                        activeOpacity={0.6}
-                                    >
-                                        <Bookmark size={20} color="#4F46E5" fill="#4F46E5" strokeWidth={2} />
-                                    </TouchableOpacity>
+                                    <View style={styles.cardActions}>
+                                        <TouchableOpacity
+                                            style={styles.viewOnMapButton}
+                                            onPress={(e) => {
+                                                e.stopPropagation();
+                                                (navigation as any).navigate("Map", {
+                                                    focusCoordinates: pin.coordinates,
+                                                    focusTimestamp: Date.now(),
+                                                });
+                                            }}
+                                            activeOpacity={0.6}
+                                        >
+                                            <Map size={18} color="#4F46E5" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.unsaveButton}
+                                            onPress={(e) => { e.stopPropagation(); handleUnsave(pin._id); }}
+                                            activeOpacity={0.6}
+                                        >
+                                            <Bookmark size={18} color="#4F46E5" fill="#4F46E5" strokeWidth={2} />
+                                        </TouchableOpacity>
+                                    </View>
                                 </TouchableOpacity>
                             );
                         })
@@ -179,6 +195,11 @@ export function SavedScreen() {
                 pin={selectedPin}
                 visible={detailVisible}
                 onClose={() => { setDetailVisible(false); setSelectedPin(null); }}
+                onViewProfile={(userId) => {
+                    setDetailVisible(false);
+                    setSelectedPin(null);
+                    (navigation as any).navigate("UserProfile", { userId });
+                }}
             />
         </SafeAreaView>
     );
@@ -219,5 +240,7 @@ const styles = StyleSheet.create({
     cardBadgeText: { fontSize: 11, fontWeight: "600" },
     cardAddressRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
     cardAddress: { fontSize: 12, color: "#aaa", flex: 1 },
-    unsaveButton: { width: 38, height: 38, borderRadius: 19, backgroundColor: "#EEF2FF", justifyContent: "center", alignItems: "center" },
+    cardActions: { flexDirection: "column", gap: 6 },
+    viewOnMapButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#EEF2FF", justifyContent: "center", alignItems: "center" },
+    unsaveButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#EEF2FF", justifyContent: "center", alignItems: "center" },
 });

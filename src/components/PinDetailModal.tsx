@@ -17,14 +17,14 @@ import {
 import {
     Bookmark,
     CalendarDays,
-    Clock,
+    ChevronLeft,
     Copy,
     ExternalLink,
     Flag,
     MapPinned,
     Plus,
-    ShieldBan,
     Tag,
+    Timer,
     Trash2,
     User,
     X,
@@ -44,6 +44,7 @@ const DAYS = [
     "saturday",
     "sunday",
 ] as const;
+type Day = (typeof DAYS)[number];
 const DAY_LABELS: Record<string, string> = {
     monday: "Mon",
     tuesday: "Tue",
@@ -53,6 +54,7 @@ const DAY_LABELS: Record<string, string> = {
     saturday: "Sat",
     sunday: "Sun",
 };
+
 const FLAG_REASONS = ["spam", "outdated", "inaccurate", "other"] as const;
 const FLAG_REASON_LABELS: Record<string, string> = {
     spam: "Spam",
@@ -61,13 +63,35 @@ const FLAG_REASON_LABELS: Record<string, string> = {
     other: "Other",
 };
 
+const EXPIRY_OPTIONS = [
+    { label: "None", value: 0 },
+    { label: "1 week", value: 7 * 24 * 60 * 60 * 1000 },
+    { label: "2 weeks", value: 14 * 24 * 60 * 60 * 1000 },
+    { label: "1 month", value: 30 * 24 * 60 * 60 * 1000 },
+    { label: "3 months", value: 90 * 24 * 60 * 60 * 1000 },
+];
+
+function formatDaysLabel(days?: Day[]): string {
+    if (!days || days.length === 0) return "Always";
+    if (days.length === 7) return "Every day";
+    return days.map((d) => DAY_LABELS[d]).join(", ");
+}
+
+type ViewState = "main" | "addDeal" | "report";
+
 interface Props {
     pin: Doc<"pins"> | null;
     visible: boolean;
     onClose: () => void;
+    onViewProfile?: (userId: string) => void;
 }
 
-export function PinDetailModal({ pin, visible, onClose }: Props) {
+export function PinDetailModal({
+    pin,
+    visible,
+    onClose,
+    onViewProfile,
+}: Props) {
     const { isSignedIn } = useAuth();
     const currentUser = useQuery(
         api.users.currentUser,
@@ -81,26 +105,19 @@ export function PinDetailModal({ pin, visible, onClose }: Props) {
         api.users.getById,
         pin ? { userId: pin.ownerId } : "skip",
     );
-    const ownerPinCount = useQuery(
-        api.users.getPinCount,
-        pin ? { userId: pin.ownerId } : "skip",
-    );
 
     const toggleSave = useMutation(api.users.toggleSavePin);
     const removePin = useMutation(api.pins.remove);
     const createDeal = useMutation(api.deals.create);
     const flagMutation = useMutation(api.flags.createFlag);
-    const toggleBlock = useMutation(api.users.toggleBlockUser);
 
-    const [authorModalVisible, setAuthorModalVisible] = useState(false);
-    const [dealModalVisible, setDealModalVisible] = useState(false);
-    const [flagModalVisible, setFlagModalVisible] = useState(false);
+    const [view, setView] = useState<ViewState>("main");
+    const [justReported, setJustReported] = useState(false);
 
     const [dealTitle, setDealTitle] = useState("");
     const [dealDesc, setDealDesc] = useState("");
-    const [dealDay, setDealDay] = useState<(typeof DAYS)[number]>("monday");
-    const [dealStart, setDealStart] = useState("");
-    const [dealEnd, setDealEnd] = useState("");
+    const [dealDays, setDealDays] = useState<Day[]>([]);
+    const [dealExpiry, setDealExpiry] = useState(0);
     const [dealSubmitting, setDealSubmitting] = useState(false);
 
     const [flagReason, setFlagReason] =
@@ -123,15 +140,26 @@ export function PinDetailModal({ pin, visible, onClose }: Props) {
         return pin.flaggedByUsers.includes(currentUser._id);
     }, [currentUser, pin]);
 
-    const isBlocked = useMemo(() => {
-        if (!currentUser || !pin) return false;
-        return (currentUser.blockedUsers ?? []).includes(pin.ownerId);
-    }, [currentUser, pin]);
+    const isReported = alreadyFlagged || justReported;
 
     if (!pin) return null;
 
     const cat = PIN_CATEGORY_MAP[pin.type as PinType];
     const Icon = cat.icon;
+
+    const handleClose = () => {
+        setView("main");
+        setJustReported(false);
+        resetDealForm();
+        onClose();
+    };
+
+    const resetDealForm = () => {
+        setDealTitle("");
+        setDealDesc("");
+        setDealDays([]);
+        setDealExpiry(0);
+    };
 
     const copyAddress = () => {
         if (!pin.address) return;
@@ -143,7 +171,6 @@ export function PinDetailModal({ pin, visible, onClose }: Props) {
         if (!pin.address && !pin.coordinates) return;
         const addr = encodeURIComponent(pin.address || "");
         const { latitude, longitude } = pin.coordinates;
-
         if (Platform.OS === "ios") {
             Alert.alert("Open in Maps", "Choose a maps app", [
                 {
@@ -192,7 +219,7 @@ export function PinDetailModal({ pin, visible, onClose }: Props) {
                 onPress: async () => {
                     try {
                         await removePin({ pinId: pin._id });
-                        onClose();
+                        handleClose();
                     } catch (e: any) {
                         Alert.alert("Error", e.message ?? "Failed");
                     }
@@ -201,33 +228,29 @@ export function PinDetailModal({ pin, visible, onClose }: Props) {
         ]);
     };
 
+    const toggleDay = (day: Day) => {
+        setDealDays((prev) =>
+            prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
+        );
+    };
+
+    const canSubmitDeal = dealTitle.trim() && dealDesc.trim();
+
     const handleSubmitDeal = async () => {
-        if (
-            !dealTitle.trim() ||
-            !dealDesc.trim() ||
-            !dealStart.trim() ||
-            !dealEnd.trim()
-        )
-            return;
+        if (!canSubmitDeal) return;
         setDealSubmitting(true);
         try {
-            await createDeal({
+            const args: any = {
                 pinId: pin._id,
                 title: dealTitle.trim(),
                 description: dealDesc.trim(),
-                schedule: {
-                    days: dealDay,
-                    startTime: dealStart.trim(),
-                    endTime: dealEnd.trim(),
-                    expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
-                },
-            });
-            setDealTitle("");
-            setDealDesc("");
-            setDealDay("monday");
-            setDealStart("");
-            setDealEnd("");
-            setDealModalVisible(false);
+            };
+            if (dealDays.length > 0) args.days = dealDays;
+            if (dealExpiry > 0) args.expiresAt = Date.now() + dealExpiry;
+
+            await createDeal(args);
+            resetDealForm();
+            setView("main");
         } catch (e: any) {
             Alert.alert("Error", e.message ?? "Failed");
         } finally {
@@ -236,6 +259,7 @@ export function PinDetailModal({ pin, visible, onClose }: Props) {
     };
 
     const handleSubmitFlag = async () => {
+        if (!flagNote.trim()) return;
         setFlagSubmitting(true);
         try {
             await flagMutation({
@@ -246,7 +270,8 @@ export function PinDetailModal({ pin, visible, onClose }: Props) {
             });
             setFlagReason("spam");
             setFlagNote("");
-            setFlagModalVisible(false);
+            setJustReported(true);
+            setView("main");
             Alert.alert(
                 "Reported",
                 "Thank you for helping keep the community safe.",
@@ -258,81 +283,71 @@ export function PinDetailModal({ pin, visible, onClose }: Props) {
         }
     };
 
-    const handleToggleBlock = async () => {
-        if (!pin) return;
-        const action = isBlocked ? "Unblock" : "Block";
-        Alert.alert(
-            `${action} User`,
-            `Are you sure you want to ${action.toLowerCase()} this user?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: action,
-                    style: isBlocked ? "default" : "destructive",
-                    onPress: async () => {
-                        try {
-                            await toggleBlock({ userId: pin.ownerId });
-                            setAuthorModalVisible(false);
-                            if (!isBlocked) onClose();
-                        } catch (e: any) {
-                            Alert.alert("Error", e.message ?? "Failed");
-                        }
-                    },
-                },
-            ],
-        );
-    };
-
-    const canSubmitDeal =
-        dealTitle.trim() &&
-        dealDesc.trim() &&
-        dealStart.trim() &&
-        dealEnd.trim();
+    const headerTitle =
+        view === "addDeal"
+            ? "Add Deal"
+            : view === "report"
+              ? "Report Pin"
+              : "Pin Details";
 
     return (
-        <>
-            <Modal
-                visible={visible}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={onClose}
-            >
-                <View style={s.container}>
-                    <View style={s.header}>
-                        <Text style={s.headerTitle}>Pin Details</Text>
+        <Modal
+            visible={visible}
+            animationType="slide"
+            presentationStyle="pageSheet"
+            onRequestClose={handleClose}
+        >
+            <View style={st.container}>
+                <View style={st.header}>
+                    {view !== "main" ? (
                         <TouchableOpacity
-                            onPress={onClose}
-                            style={s.closeBtn}
+                            onPress={() => {
+                                if (view === "addDeal") resetDealForm();
+                                setView("main");
+                            }}
+                            style={st.headerSideBtn}
                             activeOpacity={0.6}
                         >
-                            <X size={22} color="#666" />
+                            <ChevronLeft size={24} color="#111" />
                         </TouchableOpacity>
-                    </View>
+                    ) : (
+                        <View style={{ width: 36 }} />
+                    )}
+                    <Text style={st.headerTitle}>{headerTitle}</Text>
+                    <TouchableOpacity
+                        onPress={handleClose}
+                        style={st.headerSideBtn}
+                        activeOpacity={0.6}
+                    >
+                        <X size={22} color="#666" />
+                    </TouchableOpacity>
+                </View>
+
+                {view === "main" && (
                     <ScrollView
-                        contentContainerStyle={s.body}
+                        contentContainerStyle={st.body}
                         keyboardShouldPersistTaps="handled"
                     >
-                        {/* Pin header */}
-                        <View style={s.pinHeader}>
+                        <View style={st.pinHeader}>
                             <View
                                 style={[
-                                    s.iconCircle,
+                                    st.iconCircle,
                                     { backgroundColor: cat.color + "18" },
                                 ]}
                             >
                                 <Icon width={28} height={28} />
                             </View>
-                            <View style={s.pinHeaderText}>
-                                <Text style={s.pinName}>{pin.name}</Text>
+                            <View style={{ flex: 1 }}>
+                                <Text style={st.pinName}>{pin.name}</Text>
                                 <View
                                     style={[
-                                        s.badge,
+                                        st.badge,
                                         { backgroundColor: cat.color + "18" },
                                     ]}
                                 >
                                     <Text
                                         style={[
-                                            s.badgeText,
+                                            st.badgeText,
                                             { color: cat.color },
                                         ]}
                                     >
@@ -343,7 +358,7 @@ export function PinDetailModal({ pin, visible, onClose }: Props) {
                             {isSignedIn && (
                                 <TouchableOpacity
                                     onPress={handleToggleSave}
-                                    style={s.actionCircle}
+                                    style={st.actionCircle}
                                     activeOpacity={0.6}
                                 >
                                     <Bookmark
@@ -356,25 +371,24 @@ export function PinDetailModal({ pin, visible, onClose }: Props) {
                             )}
                         </View>
 
-                        <Text style={s.description}>{pin.description}</Text>
+                        <Text style={st.description}>{pin.description}</Text>
 
-                        {/* Address */}
                         {pin.address ? (
-                            <View style={s.addressCard}>
+                            <View style={st.addressCard}>
                                 <MapPinned size={16} color="#888" />
-                                <Text style={s.addressText} numberOfLines={2}>
+                                <Text style={st.addressText} numberOfLines={2}>
                                     {pin.address}
                                 </Text>
                                 <TouchableOpacity
                                     onPress={copyAddress}
-                                    style={s.addressAction}
+                                    style={st.addressAction}
                                     activeOpacity={0.6}
                                 >
                                     <Copy size={16} color="#4F46E5" />
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     onPress={openInMaps}
-                                    style={s.addressAction}
+                                    style={st.addressAction}
                                     activeOpacity={0.6}
                                 >
                                     <ExternalLink size={16} color="#4F46E5" />
@@ -382,61 +396,62 @@ export function PinDetailModal({ pin, visible, onClose }: Props) {
                             </View>
                         ) : null}
 
-                        {/* Author */}
                         <TouchableOpacity
-                            style={s.authorRow}
-                            onPress={() => setAuthorModalVisible(true)}
-                            activeOpacity={0.7}
+                            style={st.authorRow}
+                            onPress={() => {
+                                if (onViewProfile) {
+                                    handleClose();
+                                    onViewProfile(pin.ownerId);
+                                }
+                            }}
+                            activeOpacity={onViewProfile ? 0.7 : 1}
                         >
                             {pinOwner?.avatarUrl ? (
                                 <Image
                                     source={{ uri: pinOwner.avatarUrl }}
-                                    style={s.authorAvatar}
+                                    style={st.authorAvatar}
                                 />
                             ) : (
-                                <View style={s.authorAvatarPlaceholder}>
+                                <View style={st.authorAvatarPlaceholder}>
                                     <User size={16} color="#fff" />
                                 </View>
                             )}
-                            <Text style={s.authorName}>
+                            <Text style={st.authorName}>
                                 {pinOwner?.displayName ?? "Loading..."}
                             </Text>
-                            <Text style={s.authorHint}>View profile</Text>
+                            <Text style={st.authorHint}>View profile</Text>
                         </TouchableOpacity>
 
-                        {/* Actions */}
                         {isSignedIn && (
-                            <View style={s.actionRow}>
-                                {!alreadyFlagged && !isOwner && (
+                            <View style={st.actionRow}>
+                                {!isReported && !isOwner && (
                                     <TouchableOpacity
-                                        style={s.flagBtn}
-                                        onPress={() =>
-                                            setFlagModalVisible(true)
-                                        }
+                                        style={st.flagBtn}
+                                        onPress={() => setView("report")}
                                         activeOpacity={0.7}
                                     >
                                         <Flag size={14} color="#F59E0B" />
-                                        <Text style={s.flagBtnText}>
+                                        <Text style={st.flagBtnText}>
                                             Report
                                         </Text>
                                     </TouchableOpacity>
                                 )}
-                                {alreadyFlagged && (
-                                    <View style={s.flaggedBadge}>
-                                        <Flag size={13} color="#aaa" />
-                                        <Text style={s.flaggedText}>
+                                {isReported && !isOwner && (
+                                    <View style={st.reportedBadge}>
+                                        <Flag size={13} color="#DC2626" />
+                                        <Text style={st.reportedText}>
                                             Reported
                                         </Text>
                                     </View>
                                 )}
                                 {isOwner && (
                                     <TouchableOpacity
-                                        style={s.deleteBtn}
+                                        style={st.deleteBtn}
                                         onPress={handleDelete}
                                         activeOpacity={0.7}
                                     >
                                         <Trash2 size={14} color="#DC2626" />
-                                        <Text style={s.deleteBtnText}>
+                                        <Text style={st.deleteBtnText}>
                                             Delete
                                         </Text>
                                     </TouchableOpacity>
@@ -444,218 +459,156 @@ export function PinDetailModal({ pin, visible, onClose }: Props) {
                             </View>
                         )}
 
-                        {/* Deals */}
-                        <View style={s.sectionHeader}>
+                        <View style={st.sectionHeader}>
                             <Tag size={16} color="#4F46E5" />
-                            <Text style={s.sectionTitle}>Deals</Text>
+                            <Text style={st.sectionTitle}>Deals</Text>
                             {isSignedIn && (
                                 <TouchableOpacity
-                                    onPress={() => setDealModalVisible(true)}
-                                    style={s.addDealBtn}
+                                    onPress={() => setView("addDeal")}
+                                    style={st.addDealBtn}
                                     activeOpacity={0.7}
                                 >
                                     <Plus size={16} color="#4F46E5" />
-                                    <Text style={s.addDealBtnText}>Add</Text>
+                                    <Text style={st.addDealBtnText}>Add</Text>
                                 </TouchableOpacity>
                             )}
                         </View>
 
                         {deals && deals.length > 0 ? (
                             deals.map((deal) => (
-                                <View key={deal._id} style={s.dealCard}>
-                                    <Text style={s.dealTitle}>
+                                <View key={deal._id} style={st.dealCard}>
+                                    <Text style={st.dealTitle}>
                                         {deal.title}
                                     </Text>
-                                    <Text style={s.dealDesc}>
+                                    <Text style={st.dealDesc}>
                                         {deal.description}
                                     </Text>
-                                    <View style={s.dealMeta}>
-                                        <View style={s.dealMetaItem}>
+                                    <View style={st.dealMeta}>
+                                        <View style={st.dealMetaItem}>
                                             <CalendarDays
                                                 size={13}
                                                 color="#888"
                                             />
-                                            <Text style={s.dealMetaText}>
-                                                {DAY_LABELS[
-                                                    deal.schedule.days
-                                                ] ?? deal.schedule.days}
+                                            <Text style={st.dealMetaText}>
+                                                {formatDaysLabel(
+                                                    deal.schedule?.days as Day[],
+                                                )}
                                             </Text>
                                         </View>
-                                        <View style={s.dealMetaItem}>
-                                            <Clock size={13} color="#888" />
-                                            <Text style={s.dealMetaText}>
-                                                {deal.schedule.startTime} –{" "}
-                                                {deal.schedule.endTime}
-                                            </Text>
-                                        </View>
+                                        {deal.schedule?.expiresAt && (
+                                            <View style={st.dealMetaItem}>
+                                                <Timer
+                                                    size={13}
+                                                    color="#888"
+                                                />
+                                                <Text style={st.dealMetaText}>
+                                                    Expires{" "}
+                                                    {new Date(
+                                                        deal.schedule.expiresAt,
+                                                    ).toLocaleDateString()}
+                                                </Text>
+                                            </View>
+                                        )}
                                     </View>
                                 </View>
                             ))
                         ) : (
-                            <Text style={s.emptyDeals}>
+                            <Text style={st.emptyDeals}>
                                 No deals yet — be the first to add one!
                             </Text>
                         )}
                     </ScrollView>
-                </View>
-            </Modal>
+                )}
 
-            {/* ── Author Profile Modal ── */}
-            <Modal
-                visible={authorModalVisible}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={() => setAuthorModalVisible(false)}
-            >
-                <View style={s.container}>
-                    <View style={s.header}>
-                        <Text style={s.headerTitle}>User Profile</Text>
-                        <TouchableOpacity
-                            onPress={() => setAuthorModalVisible(false)}
-                            style={s.closeBtn}
-                            activeOpacity={0.6}
-                        >
-                            <X size={22} color="#666" />
-                        </TouchableOpacity>
-                    </View>
-                    <View style={s.profileBody}>
-                        {pinOwner?.avatarUrl ? (
-                            <Image
-                                source={{ uri: pinOwner.avatarUrl }}
-                                style={s.profileAvatar}
-                            />
-                        ) : (
-                            <View style={s.profileAvatarPlaceholder}>
-                                <User size={32} color="#fff" />
-                            </View>
-                        )}
-                        <Text style={s.profileName}>
-                            {pinOwner?.displayName ?? "User"}
-                        </Text>
-                        {pinOwner?.email ? (
-                            <Text style={s.profileEmail}>{pinOwner.email}</Text>
-                        ) : null}
-                        <View style={s.profileStat}>
-                            <Text style={s.profileStatNum}>
-                                {ownerPinCount ?? 0}
-                            </Text>
-                            <Text style={s.profileStatLabel}>Pins Created</Text>
-                        </View>
-                        {isSignedIn && !isOwner && (
-                            <TouchableOpacity
-                                style={[
-                                    s.blockBtn,
-                                    isBlocked && s.blockBtnActive,
-                                ]}
-                                onPress={handleToggleBlock}
-                                activeOpacity={0.7}
-                            >
-                                <ShieldBan
-                                    size={18}
-                                    color={isBlocked ? "#fff" : "#DC2626"}
-                                />
-                                <Text
-                                    style={[
-                                        s.blockBtnText,
-                                        isBlocked && s.blockBtnTextActive,
-                                    ]}
-                                >
-                                    {isBlocked ? "Unblock User" : "Block User"}
-                                </Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                </View>
-            </Modal>
-
-            {/* ── Deal Modal ── */}
-            <Modal
-                visible={dealModalVisible}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={() => setDealModalVisible(false)}
-            >
-                <View style={s.container}>
-                    <View style={s.header}>
-                        <Text style={s.headerTitle}>New Deal</Text>
-                        <TouchableOpacity
-                            onPress={() => setDealModalVisible(false)}
-                            style={s.closeBtn}
-                            activeOpacity={0.6}
-                        >
-                            <X size={22} color="#666" />
-                        </TouchableOpacity>
-                    </View>
+                {view === "addDeal" && (
                     <ScrollView
-                        contentContainerStyle={s.formBody}
+                        contentContainerStyle={st.formBody}
                         keyboardShouldPersistTaps="handled"
                     >
-                        <Text style={s.label}>Title</Text>
+                        <Text style={st.label}>Title</Text>
                         <TextInput
-                            style={s.input}
+                            style={st.input}
                             placeholder="e.g. 50% off organic produce"
                             placeholderTextColor="#aaa"
                             value={dealTitle}
                             onChangeText={setDealTitle}
                         />
-                        <Text style={s.label}>Description</Text>
+
+                        <Text style={st.label}>Description</Text>
                         <TextInput
-                            style={[s.input, s.textArea]}
+                            style={[st.input, st.textArea]}
                             placeholder="Details..."
                             placeholderTextColor="#aaa"
                             value={dealDesc}
                             onChangeText={setDealDesc}
                             multiline
                         />
-                        <Text style={s.label}>Day of Week</Text>
-                        <View style={s.chipRow}>
-                            {DAYS.map((d) => (
-                                <TouchableOpacity
-                                    key={d}
-                                    style={[
-                                        s.chip,
-                                        dealDay === d && s.chipActive,
-                                    ]}
-                                    onPress={() => setDealDay(d)}
-                                    activeOpacity={0.7}
-                                >
-                                    <Text
+
+                        <Text style={st.label}>
+                            Days <Text style={st.hint}>(none = always)</Text>
+                        </Text>
+                        <View style={st.chipRow}>
+                            {DAYS.map((d) => {
+                                const active = dealDays.includes(d);
+                                return (
+                                    <TouchableOpacity
+                                        key={d}
                                         style={[
-                                            s.chipText,
-                                            dealDay === d && s.chipTextActive,
+                                            st.chip,
+                                            active && st.chipActive,
                                         ]}
+                                        onPress={() => toggleDay(d)}
+                                        activeOpacity={0.7}
                                     >
-                                        {DAY_LABELS[d]}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
+                                        <Text
+                                            style={[
+                                                st.chipText,
+                                                active && st.chipTextActive,
+                                            ]}
+                                        >
+                                            {DAY_LABELS[d]}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </View>
-                        <View style={s.timeRow}>
-                            <View style={s.timeField}>
-                                <Text style={s.label}>Start</Text>
-                                <TextInput
-                                    style={s.input}
-                                    placeholder="9:00 AM"
-                                    placeholderTextColor="#aaa"
-                                    value={dealStart}
-                                    onChangeText={setDealStart}
-                                />
-                            </View>
-                            <View style={s.timeField}>
-                                <Text style={s.label}>End</Text>
-                                <TextInput
-                                    style={s.input}
-                                    placeholder="5:00 PM"
-                                    placeholderTextColor="#aaa"
-                                    value={dealEnd}
-                                    onChangeText={setDealEnd}
-                                />
-                            </View>
+
+                        <Text style={st.label}>
+                            Expires after{" "}
+                            <Text style={st.hint}>(optional)</Text>
+                        </Text>
+                        <View style={st.chipRow}>
+                            {EXPIRY_OPTIONS.map((opt) => {
+                                const active = dealExpiry === opt.value;
+                                return (
+                                    <TouchableOpacity
+                                        key={opt.label}
+                                        style={[
+                                            st.chip,
+                                            active && st.chipActive,
+                                        ]}
+                                        onPress={() =>
+                                            setDealExpiry(opt.value)
+                                        }
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text
+                                            style={[
+                                                st.chipText,
+                                                active && st.chipTextActive,
+                                            ]}
+                                        >
+                                            {opt.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </View>
+
                         <TouchableOpacity
                             style={[
-                                s.submitBtn,
-                                !canSubmitDeal && s.submitBtnDisabled,
+                                st.submitBtn,
+                                !canSubmitDeal && st.submitBtnDisabled,
                             ]}
                             onPress={handleSubmitDeal}
                             disabled={!canSubmitDeal || dealSubmitting}
@@ -664,49 +617,34 @@ export function PinDetailModal({ pin, visible, onClose }: Props) {
                             {dealSubmitting ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={s.submitBtnText}>Add Deal</Text>
+                                <Text style={st.submitBtnText}>Add Deal</Text>
                             )}
                         </TouchableOpacity>
                     </ScrollView>
-                </View>
-            </Modal>
+                )}
 
-            {/* ── Flag Modal ── */}
-            <Modal
-                visible={flagModalVisible}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={() => setFlagModalVisible(false)}
-            >
-                <View style={s.container}>
-                    <View style={s.header}>
-                        <Text style={s.headerTitle}>Report Pin</Text>
-                        <TouchableOpacity
-                            onPress={() => setFlagModalVisible(false)}
-                            style={s.closeBtn}
-                            activeOpacity={0.6}
-                        >
-                            <X size={22} color="#666" />
-                        </TouchableOpacity>
-                    </View>
-                    <View style={s.formBody}>
-                        <Text style={s.label}>Reason</Text>
-                        <View style={s.chipRow}>
+                {view === "report" && (
+                    <ScrollView
+                        contentContainerStyle={st.formBody}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        <Text style={st.label}>Reason</Text>
+                        <View style={st.chipRow}>
                             {FLAG_REASONS.map((r) => (
                                 <TouchableOpacity
                                     key={r}
                                     style={[
-                                        s.chip,
-                                        flagReason === r && s.chipFlagActive,
+                                        st.chip,
+                                        flagReason === r && st.chipFlagActive,
                                     ]}
                                     onPress={() => setFlagReason(r)}
                                     activeOpacity={0.7}
                                 >
                                     <Text
                                         style={[
-                                            s.chipText,
+                                            st.chipText,
                                             flagReason === r &&
-                                                s.chipTextActive,
+                                                st.chipTextActive,
                                         ]}
                                     >
                                         {FLAG_REASON_LABELS[r]}
@@ -714,52 +652,60 @@ export function PinDetailModal({ pin, visible, onClose }: Props) {
                                 </TouchableOpacity>
                             ))}
                         </View>
-                        <Text style={s.label}>
-                            Note <Text style={s.optional}>(optional)</Text>
-                        </Text>
+                        <Text style={st.label}>Note</Text>
                         <TextInput
-                            style={[s.input, s.textArea]}
-                            placeholder="Any additional details..."
+                            style={[st.input, st.textArea]}
+                            placeholder="Describe the issue..."
                             placeholderTextColor="#aaa"
                             value={flagNote}
                             onChangeText={setFlagNote}
                             multiline
                         />
                         <TouchableOpacity
-                            style={s.flagSubmitBtn}
+                            style={[
+                                st.flagSubmitBtn,
+                                (!flagNote.trim() || flagSubmitting) &&
+                                    st.submitBtnDisabled,
+                            ]}
                             onPress={handleSubmitFlag}
-                            disabled={flagSubmitting}
+                            disabled={!flagNote.trim() || flagSubmitting}
                             activeOpacity={0.8}
                         >
                             {flagSubmitting ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={s.submitBtnText}>
+                                <Text style={st.submitBtnText}>
                                     Submit Report
                                 </Text>
                             )}
                         </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
-        </>
+                    </ScrollView>
+                )}
+            </View>
+        </Modal>
     );
 }
 
-const s = StyleSheet.create({
+const st = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff" },
     header: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: 24,
+        paddingHorizontal: 16,
         paddingTop: 20,
         paddingBottom: 16,
         borderBottomWidth: 1,
         borderBottomColor: "#f0f0f0",
     },
-    headerTitle: { fontSize: 20, fontWeight: "700", color: "#111" },
-    closeBtn: {
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: "700",
+        color: "#111",
+        flex: 1,
+        textAlign: "center",
+    },
+    headerSideBtn: {
         width: 36,
         height: 36,
         borderRadius: 18,
@@ -768,9 +714,8 @@ const s = StyleSheet.create({
         alignItems: "center",
     },
     body: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 48 },
-    formBody: { paddingHorizontal: 24, paddingTop: 12 },
+    formBody: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 48 },
 
-    /* Pin header */
     pinHeader: {
         flexDirection: "row",
         alignItems: "center",
@@ -784,7 +729,6 @@ const s = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
-    pinHeaderText: { flex: 1 },
     pinName: { fontSize: 20, fontWeight: "700", color: "#111" },
     badge: {
         alignSelf: "flex-start",
@@ -808,8 +752,6 @@ const s = StyleSheet.create({
         lineHeight: 22,
         marginBottom: 14,
     },
-
-    /* Address */
     addressCard: {
         flexDirection: "row",
         alignItems: "center",
@@ -830,8 +772,6 @@ const s = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
-
-    /* Author */
     authorRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -854,8 +794,6 @@ const s = StyleSheet.create({
     },
     authorName: { flex: 1, fontSize: 15, fontWeight: "600", color: "#222" },
     authorHint: { fontSize: 12, color: "#4F46E5", fontWeight: "500" },
-
-    /* Actions */
     actionRow: { flexDirection: "row", gap: 10, marginBottom: 8 },
     flagBtn: {
         flexDirection: "row",
@@ -869,16 +807,18 @@ const s = StyleSheet.create({
         backgroundColor: "#FFFBEB",
     },
     flagBtnText: { color: "#B45309", fontSize: 13, fontWeight: "600" },
-    flaggedBadge: {
+    reportedBadge: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 4,
+        gap: 5,
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 8,
-        backgroundColor: "#f5f5f5",
+        backgroundColor: "#FEF2F2",
+        borderWidth: 1,
+        borderColor: "#FECACA",
     },
-    flaggedText: { color: "#aaa", fontSize: 13, fontWeight: "500" },
+    reportedText: { color: "#DC2626", fontSize: 13, fontWeight: "600" },
     deleteBtn: {
         flexDirection: "row",
         alignItems: "center",
@@ -891,8 +831,6 @@ const s = StyleSheet.create({
         backgroundColor: "#FEF2F2",
     },
     deleteBtnText: { color: "#DC2626", fontSize: 13, fontWeight: "600" },
-
-    /* Deals */
     sectionHeader: {
         flexDirection: "row",
         alignItems: "center",
@@ -902,7 +840,12 @@ const s = StyleSheet.create({
         borderTopColor: "#f0f0f0",
         paddingTop: 16,
     },
-    sectionTitle: { fontSize: 17, fontWeight: "700", color: "#111", flex: 1 },
+    sectionTitle: {
+        fontSize: 17,
+        fontWeight: "700",
+        color: "#111",
+        flex: 1,
+    },
     addDealBtn: {
         flexDirection: "row",
         alignItems: "center",
@@ -923,7 +866,12 @@ const s = StyleSheet.create({
     },
     dealTitle: { fontSize: 15, fontWeight: "700", color: "#222" },
     dealDesc: { fontSize: 14, color: "#555", marginTop: 4, lineHeight: 20 },
-    dealMeta: { flexDirection: "row", gap: 16, marginTop: 10 },
+    dealMeta: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 12,
+        marginTop: 10,
+    },
     dealMetaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
     dealMetaText: { fontSize: 12, color: "#888" },
     emptyDeals: {
@@ -932,16 +880,14 @@ const s = StyleSheet.create({
         textAlign: "center",
         paddingVertical: 20,
     },
-
-    /* Shared form */
     label: {
         fontSize: 14,
         fontWeight: "600",
         color: "#333",
-        marginTop: 8,
-        marginBottom: 4,
+        marginTop: 12,
+        marginBottom: 6,
     },
-    optional: { fontWeight: "400", color: "#aaa" },
+    hint: { fontWeight: "400", color: "#aaa", fontSize: 12 },
     input: {
         borderWidth: 1,
         borderColor: "#ddd",
@@ -966,14 +912,12 @@ const s = StyleSheet.create({
     chipFlagActive: { backgroundColor: "#F59E0B", borderColor: "#F59E0B" },
     chipText: { fontSize: 13, color: "#555", fontWeight: "500" },
     chipTextActive: { color: "#fff", fontWeight: "700" },
-    timeRow: { flexDirection: "row", gap: 12 },
-    timeField: { flex: 1 },
     submitBtn: {
         backgroundColor: "#4F46E5",
         borderRadius: 12,
         paddingVertical: 16,
         alignItems: "center",
-        marginTop: 16,
+        marginTop: 20,
     },
     submitBtnDisabled: { opacity: 0.45 },
     submitBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
@@ -984,40 +928,4 @@ const s = StyleSheet.create({
         alignItems: "center",
         marginTop: 20,
     },
-
-    /* Author profile */
-    profileBody: {
-        alignItems: "center",
-        paddingTop: 40,
-        paddingHorizontal: 32,
-        gap: 10,
-    },
-    profileAvatar: { width: 88, height: 88, borderRadius: 44 },
-    profileAvatarPlaceholder: {
-        width: 88,
-        height: 88,
-        borderRadius: 44,
-        backgroundColor: "#4F46E5",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    profileName: { fontSize: 22, fontWeight: "700", color: "#111" },
-    profileEmail: { fontSize: 14, color: "#666" },
-    profileStat: { alignItems: "center", marginTop: 12 },
-    profileStatNum: { fontSize: 24, fontWeight: "700", color: "#111" },
-    profileStatLabel: { fontSize: 13, color: "#888", marginTop: 2 },
-    blockBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        marginTop: 24,
-        borderWidth: 1,
-        borderColor: "#DC2626",
-        borderRadius: 12,
-        paddingVertical: 14,
-        paddingHorizontal: 28,
-    },
-    blockBtnActive: { backgroundColor: "#DC2626", borderColor: "#DC2626" },
-    blockBtnText: { fontSize: 16, fontWeight: "600", color: "#DC2626" },
-    blockBtnTextActive: { color: "#fff" },
 });

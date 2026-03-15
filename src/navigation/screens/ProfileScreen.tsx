@@ -15,12 +15,16 @@ import { useNavigation } from "@react-navigation/native";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 import { BadgesSection } from "../../components/BadgesSection";
 
+const appLogo = require("../../assets/logo/logo.png");
+
 function SignInScreen() {
     return (
         <View style={styles.authContainer}>
+            <Image source={appLogo} style={styles.logo} />
             <Text style={styles.title}>Welcome to GoodFind</Text>
             <Text style={styles.subtitle}>
-                Sign in to save pins and access your profile
+                Community-sourced pins for food banks, markets, and grocery
+                deals - so healthy eating is always within reach.
             </Text>
             <GoogleSignInButton />
         </View>
@@ -63,6 +67,7 @@ function UserProfile() {
 
     return (
         <ScrollView contentContainerStyle={styles.profileContainer}>
+            <Image source={appLogo} style={styles.logoSmall} />
             {avatarUrl ? (
                 <Image source={{ uri: avatarUrl }} style={styles.avatar} />
             ) : (
@@ -150,6 +155,18 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: 32,
         gap: 12,
+    },
+    logo: {
+        width: 100,
+        height: 100,
+        borderRadius: 24,
+        marginBottom: 16,
+    },
+    logoSmall: {
+        width: 56,
+        height: 56,
+        borderRadius: 14,
+        marginBottom: 8,
     },
     title: {
         fontSize: 28,

@@ -44,6 +44,9 @@ import {
 } from "../../constants/pinCategories";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
+const MARKER_ANCHOR = { x: 0.5, y: 0.5 };
+const MARKER_CENTER_OFFSET = { x: 0, y: -24 };
+
 type FilterKey = PinType | "has_deals" | "my_deals";
 
 const SHORT_LABELS: Partial<Record<FilterKey, string>> = {
@@ -370,10 +373,14 @@ export function MapScreen() {
                         <Marker
                             key={pin._id}
                             coordinate={pin.coordinates}
-                            anchor={{ x: 0.5, y: 1 }}
+                            anchor={MARKER_ANCHOR}
+                            centerOffset={MARKER_CENTER_OFFSET}
+                            tracksViewChanges={false}
                             onPress={() => handleMarkerPress(pin)}
                         >
-                            <PIcon width={70} />
+                            <View style={styles.markerWrap}>
+                                <PIcon width={52} height={60} />
+                            </View>
                         </Marker>
                     );
                 })}
@@ -602,6 +609,7 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     map: { width: "100%", height: "100%" },
     loading: { flex: 1, justifyContent: "center", alignItems: "center" },
+    markerWrap: { width: 52, height: 60 },
 
     searchContainer: { position: "absolute", top: 60, left: 16, right: 16 },
     searchBar: {

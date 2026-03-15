@@ -648,7 +648,7 @@ export function PinDetailModal({
                             })
                         ) : (
                             <Text style={st.emptyDeals}>
-                                No deals yet — be the first to add one!
+                                No deals yet, be the first to add one!
                             </Text>
                         )}
                     </ScrollView>

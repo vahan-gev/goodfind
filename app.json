@@ -1,40 +1,40 @@
 {
-  "expo": {
-    "name": "goodfind",
-    "slug": "goodfind",
-    "version": "1.0.0",
-    "orientation": "default",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "scheme": "goodfind",
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.goodfind"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "package": "com.goodfind"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-asset",
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#ffffff",
-          "image": "./assets/splash-icon.png"
-        }
-      ],
-      "@clerk/expo",
-      "expo-secure-store",
-      "expo-web-browser",
-      "@react-native-community/datetimepicker"
-    ]
-  }
+    "expo": {
+        "name": "GoodFind",
+        "slug": "goodfind",
+        "version": "1.0.0",
+        "orientation": "default",
+        "icon": "./assets/icon.png",
+        "userInterfaceStyle": "automatic",
+        "newArchEnabled": true,
+        "scheme": "goodfind",
+        "ios": {
+            "supportsTablet": true,
+            "bundleIdentifier": "com.goodfind"
+        },
+        "android": {
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/adaptive-icon.png",
+                "backgroundColor": "#ffffff"
+            },
+            "package": "com.goodfind"
+        },
+        "web": {
+            "favicon": "./assets/favicon.png"
+        },
+        "plugins": [
+            "expo-asset",
+            [
+                "expo-splash-screen",
+                {
+                    "backgroundColor": "#ffffff",
+                    "image": "./assets/splash-icon.png"
+                }
+            ],
+            "@clerk/expo",
+            "expo-secure-store",
+            "expo-web-browser",
+            "@react-native-community/datetimepicker"
+        ]
+    }
 }

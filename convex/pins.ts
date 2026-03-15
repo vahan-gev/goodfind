@@ -9,6 +9,7 @@ const pinType = v.union(
     v.literal("community_garden"),
     v.literal("pantry"),
     v.literal("other"),
+    v.literal("temporary"),
 );
 
 export const create = mutation({

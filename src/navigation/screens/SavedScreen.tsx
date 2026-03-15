@@ -23,7 +23,10 @@ import type { Doc } from "../../../convex/_generated/dataModel";
 export function SavedScreen() {
     const { isSignedIn } = useAuth();
     const navigation = useNavigation();
-    const currentUser = useQuery(api.users.currentUser, isSignedIn ? {} : "skip");
+    const currentUser = useQuery(
+        api.users.currentUser,
+        isSignedIn ? {} : "skip",
+    );
     const savedPins = useQuery(
         api.pins.getByIds,
         currentUser && currentUser.savedPins.length > 0
@@ -62,7 +65,7 @@ export function SavedScreen() {
             <SafeAreaView style={styles.container}>
                 <View style={styles.authContainer}>
                     <View style={styles.iconCircle}>
-                        <Bookmark size={32} color="#4F46E5" strokeWidth={2} />
+                        <Bookmark size={32} color="#2E9E6B" strokeWidth={2} />
                     </View>
                     <Text style={styles.authTitle}>Your Saved Pins</Text>
                     <Text style={styles.authSubtitle}>
@@ -119,7 +122,10 @@ export function SavedScreen() {
                         returnKeyType="search"
                     />
                     {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery("")} activeOpacity={0.6}>
+                        <TouchableOpacity
+                            onPress={() => setSearchQuery("")}
+                            activeOpacity={0.6}
+                        >
                             <X size={18} color="#888" />
                         </TouchableOpacity>
                     )}
@@ -133,7 +139,9 @@ export function SavedScreen() {
             ) : (
                 <ScrollView contentContainerStyle={styles.listContainer}>
                     {filteredPins.length === 0 && searchQuery.trim() ? (
-                        <Text style={styles.noResults}>No pins match your search</Text>
+                        <Text style={styles.noResults}>
+                            No pins match your search
+                        </Text>
                     ) : (
                         filteredPins.map((pin) => {
                             const cat = PIN_CATEGORY_MAP[pin.type as PinType];
@@ -142,23 +150,59 @@ export function SavedScreen() {
                                 <TouchableOpacity
                                     key={pin._id}
                                     style={styles.card}
-                                    onPress={() => { setSelectedPin(pin); setDetailVisible(true); }}
+                                    onPress={() => {
+                                        setSelectedPin(pin);
+                                        setDetailVisible(true);
+                                    }}
                                     activeOpacity={0.7}
                                 >
-                                    <View style={[styles.cardIconCircle, { backgroundColor: cat.color + "18" }]}>
+                                    <View
+                                        style={[
+                                            styles.cardIconCircle,
+                                            {
+                                                backgroundColor:
+                                                    cat.color + "18",
+                                            },
+                                        ]}
+                                    >
                                         <Icon width={24} height={24} />
                                     </View>
                                     <View style={styles.cardContent}>
-                                        <Text style={styles.cardName}>{pin.name}</Text>
+                                        <Text style={styles.cardName}>
+                                            {pin.name}
+                                        </Text>
                                         <View style={styles.cardMeta}>
-                                            <View style={[styles.cardBadge, { backgroundColor: cat.color + "18" }]}>
-                                                <Text style={[styles.cardBadgeText, { color: cat.color }]}>{cat.label}</Text>
+                                            <View
+                                                style={[
+                                                    styles.cardBadge,
+                                                    {
+                                                        backgroundColor:
+                                                            cat.color + "18",
+                                                    },
+                                                ]}
+                                            >
+                                                <Text
+                                                    style={[
+                                                        styles.cardBadgeText,
+                                                        { color: cat.color },
+                                                    ]}
+                                                >
+                                                    {cat.label}
+                                                </Text>
                                             </View>
                                         </View>
                                         {pin.address ? (
                                             <View style={styles.cardAddressRow}>
-                                                <MapPinned size={12} color="#aaa" />
-                                                <Text style={styles.cardAddress} numberOfLines={1}>{pin.address}</Text>
+                                                <MapPinned
+                                                    size={12}
+                                                    color="#aaa"
+                                                />
+                                                <Text
+                                                    style={styles.cardAddress}
+                                                    numberOfLines={1}
+                                                >
+                                                    {pin.address}
+                                                </Text>
                                             </View>
                                         ) : null}
                                     </View>
@@ -167,21 +211,34 @@ export function SavedScreen() {
                                             style={styles.viewOnMapButton}
                                             onPress={(e) => {
                                                 e.stopPropagation();
-                                                (navigation as any).navigate("Map", {
-                                                    focusCoordinates: pin.coordinates,
-                                                    focusTimestamp: Date.now(),
-                                                });
+                                                (navigation as any).navigate(
+                                                    "Map",
+                                                    {
+                                                        focusCoordinates:
+                                                            pin.coordinates,
+                                                        focusTimestamp:
+                                                            Date.now(),
+                                                    },
+                                                );
                                             }}
                                             activeOpacity={0.6}
                                         >
-                                            <Map size={18} color="#4F46E5" />
+                                            <Map size={18} color="#2E9E6B" />
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             style={styles.unsaveButton}
-                                            onPress={(e) => { e.stopPropagation(); handleUnsave(pin._id); }}
+                                            onPress={(e) => {
+                                                e.stopPropagation();
+                                                handleUnsave(pin._id);
+                                            }}
                                             activeOpacity={0.6}
                                         >
-                                            <Bookmark size={18} color="#4F46E5" fill="#4F46E5" strokeWidth={2} />
+                                            <Bookmark
+                                                size={18}
+                                                color="#2E9E6B"
+                                                fill="#2E9E6B"
+                                                strokeWidth={2}
+                                            />
                                         </TouchableOpacity>
                                     </View>
                                 </TouchableOpacity>
@@ -194,7 +251,10 @@ export function SavedScreen() {
             <PinDetailModal
                 pin={selectedPin}
                 visible={detailVisible}
-                onClose={() => { setDetailVisible(false); setSelectedPin(null); }}
+                onClose={() => {
+                    setDetailVisible(false);
+                    setSelectedPin(null);
+                }}
                 onViewProfile={(userId) => {
                     setDetailVisible(false);
                     setSelectedPin(null);
@@ -208,39 +268,138 @@ export function SavedScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff" },
     centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-    screenTitle: { fontSize: 28, fontWeight: "700", color: "#111", paddingHorizontal: 24, paddingTop: 8, paddingBottom: 12 },
+    screenTitle: {
+        fontSize: 28,
+        fontWeight: "700",
+        color: "#111",
+        paddingHorizontal: 24,
+        paddingTop: 8,
+        paddingBottom: 12,
+    },
 
     searchWrapper: { paddingHorizontal: 16, marginBottom: 12 },
     searchBar: {
-        flexDirection: "row", alignItems: "center", gap: 8,
-        backgroundColor: "#F5F5F5", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        backgroundColor: "#F5F5F5",
+        borderRadius: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
     },
     searchInput: { flex: 1, fontSize: 15, color: "#111", paddingVertical: 0 },
 
     listContainer: { paddingHorizontal: 16, gap: 10, paddingBottom: 24 },
-    noResults: { textAlign: "center", color: "#aaa", fontSize: 15, paddingTop: 40 },
+    noResults: {
+        textAlign: "center",
+        color: "#aaa",
+        fontSize: 15,
+        paddingTop: 40,
+    },
 
-    authContainer: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 32, gap: 12 },
-    iconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: "#EEF2FF", justifyContent: "center", alignItems: "center", marginBottom: 8 },
-    authTitle: { fontSize: 24, fontWeight: "700", color: "#111", textAlign: "center" },
-    authSubtitle: { fontSize: 15, color: "#666", textAlign: "center", marginBottom: 16 },
+    authContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 32,
+        gap: 12,
+    },
+    iconCircle: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: "#2E9E6B18",
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    authTitle: {
+        fontSize: 24,
+        fontWeight: "700",
+        color: "#111",
+        textAlign: "center",
+    },
+    authSubtitle: {
+        fontSize: 15,
+        color: "#666",
+        textAlign: "center",
+        marginBottom: 16,
+    },
     authButtonWrapper: { width: "100%" },
 
-    emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 40, gap: 10 },
-    emptyIconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: "#f5f5f5", justifyContent: "center", alignItems: "center", marginBottom: 8 },
-    emptyTitle: { fontSize: 20, fontWeight: "700", color: "#444", textAlign: "center" },
-    emptySubtitle: { fontSize: 14, color: "#999", textAlign: "center", lineHeight: 20 },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 40,
+        gap: 10,
+    },
+    emptyIconCircle: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: "#f5f5f5",
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: "700",
+        color: "#444",
+        textAlign: "center",
+    },
+    emptySubtitle: {
+        fontSize: 14,
+        color: "#999",
+        textAlign: "center",
+        lineHeight: 20,
+    },
 
-    card: { flexDirection: "row", alignItems: "center", backgroundColor: "#FAFAFA", borderWidth: 1, borderColor: "#eee", borderRadius: 14, padding: 14, gap: 12 },
-    cardIconCircle: { width: 44, height: 44, borderRadius: 22, justifyContent: "center", alignItems: "center" },
+    card: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FAFAFA",
+        borderWidth: 1,
+        borderColor: "#eee",
+        borderRadius: 14,
+        padding: 14,
+        gap: 12,
+    },
+    cardIconCircle: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: "center",
+        alignItems: "center",
+    },
     cardContent: { flex: 1 },
     cardName: { fontSize: 16, fontWeight: "700", color: "#222" },
     cardMeta: { flexDirection: "row", marginTop: 4, gap: 6 },
     cardBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5 },
     cardBadgeText: { fontSize: 11, fontWeight: "600" },
-    cardAddressRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+    cardAddressRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        marginTop: 4,
+    },
     cardAddress: { fontSize: 12, color: "#aaa", flex: 1 },
     cardActions: { flexDirection: "column", gap: 6 },
-    viewOnMapButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#EEF2FF", justifyContent: "center", alignItems: "center" },
-    unsaveButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#EEF2FF", justifyContent: "center", alignItems: "center" },
+    viewOnMapButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: "#2E9E6B18",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    unsaveButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: "#2E9E6B18",
+        justifyContent: "center",
+        alignItems: "center",
+    },
 });

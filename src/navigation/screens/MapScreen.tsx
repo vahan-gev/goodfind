@@ -3,6 +3,7 @@ import {
     ActivityIndicator,
     Alert,
     Keyboard,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -16,7 +17,14 @@ import MapView, {
     Region,
 } from "react-native-maps";
 import * as Location from "expo-location";
-import { LocateFixed, MapPin, Search, X } from "lucide-react-native";
+import {
+    LocateFixed,
+    MapPin,
+    Search,
+    Tag,
+    UserCheck,
+    X,
+} from "lucide-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import BottomSheet, {
@@ -34,7 +42,24 @@ import {
     PIN_CATEGORY_MAP,
     type PinType,
 } from "../../constants/pinCategories";
-import type { Doc } from "../../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../../convex/_generated/dataModel";
+
+type FilterKey = PinType | "has_deals" | "my_deals";
+
+const SHORT_LABELS: Partial<Record<FilterKey, string>> = {
+    farmers_market: "Market",
+    community_garden: "Garden",
+};
+
+const FILTER_PILLS: { key: FilterKey; label: string; color: string }[] = [
+    ...PIN_CATEGORIES.filter((cat) => cat.type !== "temporary").map((cat) => ({
+        key: cat.type as FilterKey,
+        label: SHORT_LABELS[cat.type] ?? cat.label,
+        color: cat.color,
+    })),
+    { key: "has_deals", label: "Has Deals", color: "#10B981" },
+    { key: "my_deals", label: "My Deals", color: "#4F46E5" },
+];
 
 export function MapScreen() {
     const mapRef = useRef<MapView>(null);
@@ -59,6 +84,9 @@ export function MapScreen() {
 
     const [searchQuery, setSearchQuery] = useState("");
     const [searchFocused, setSearchFocused] = useState(false);
+    const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(
+        new Set(),
+    );
 
     const { isSignedIn } = useAuth();
     const pins = useQuery(api.pins.list);
@@ -67,6 +95,19 @@ export function MapScreen() {
         api.users.currentUser,
         isSignedIn ? {} : "skip",
     );
+    const myDealPinIdsList = useQuery(
+        api.deals.myDealPinIds,
+        isSignedIn ? {} : "skip",
+    );
+
+    const toggleFilter = useCallback((key: FilterKey) => {
+        setActiveFilters((prev) => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+        });
+    }, []);
 
     const filteredPins = useMemo(() => {
         if (!pins) return [];
@@ -84,8 +125,25 @@ export function MapScreen() {
                     p.type.replace("_", " ").includes(q),
             );
         }
+        const categoryFilters = [...activeFilters].filter(
+            (f) => f !== "has_deals" && f !== "my_deals",
+        ) as PinType[];
+        if (categoryFilters.length > 0) {
+            result = result.filter((p) =>
+                categoryFilters.includes(p.type as PinType),
+            );
+        }
+        if (activeFilters.has("has_deals")) {
+            result = result.filter((p) => p.deals.length > 0);
+        }
+        if (activeFilters.has("my_deals")) {
+            const myPinIds = new Set(
+                myDealPinIdsList as Id<"pins">[] | undefined,
+            );
+            result = result.filter((p) => myPinIds.has(p._id));
+        }
         return result;
-    }, [pins, currentUser, searchQuery]);
+    }, [pins, currentUser, searchQuery, activeFilters, myDealPinIdsList]);
 
     useEffect(() => {
         let sub: Location.LocationSubscription | null = null;
@@ -166,10 +224,8 @@ export function MapScreen() {
             if (userLoc) {
                 let minDist = Infinity;
                 for (const pin of results) {
-                    const dlat =
-                        pin.coordinates.latitude - userLoc.latitude;
-                    const dlng =
-                        pin.coordinates.longitude - userLoc.longitude;
+                    const dlat = pin.coordinates.latitude - userLoc.latitude;
+                    const dlng = pin.coordinates.longitude - userLoc.longitude;
                     const d = dlat * dlat + dlng * dlng;
                     if (d < minDist) {
                         minDist = d;
@@ -273,7 +329,7 @@ export function MapScreen() {
                 isPublic: true,
             });
             addSheetRef.current?.close();
-            setSearchQuery("")
+            setSearchQuery("");
             setSearchFocused(false);
             resetAddForm();
         } catch (err: any) {
@@ -285,7 +341,7 @@ export function MapScreen() {
 
     const SelectedPinIcon = selectedType
         ? PIN_CATEGORY_MAP[selectedType].pinIcon
-        : PIN_CATEGORY_MAP["other"].pinIcon;
+        : PIN_CATEGORY_MAP["temporary"].pinIcon;
     const canSubmitPin =
         selectedType && name.trim().length > 0 && description.trim().length > 0;
 
@@ -355,6 +411,44 @@ export function MapScreen() {
                         </TouchableOpacity>
                     )}
                 </View>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.filterRow}
+                    style={styles.filterScroll}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {FILTER_PILLS.map((pill) => {
+                        const isActive = activeFilters.has(pill.key);
+                        const cat = PIN_CATEGORY_MAP[pill.key as PinType];
+                        const CatIcon = cat?.icon;
+                        const iconColor = pill.color;
+                        return (
+                            <TouchableOpacity
+                                key={pill.key}
+                                style={[
+                                    styles.filterPill,
+                                    isActive && {
+                                        borderColor: pill.color,
+                                    },
+                                ]}
+                                onPress={() => toggleFilter(pill.key)}
+                                activeOpacity={1}
+                            >
+                                {CatIcon ? (
+                                    <CatIcon width={16} height={16} />
+                                ) : pill.key === "has_deals" ? (
+                                    <Tag size={14} color={iconColor} />
+                                ) : (
+                                    <UserCheck size={14} color={iconColor} />
+                                )}
+                                <Text style={[styles.filterPillText]}>
+                                    {pill.label}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </ScrollView>
             </View>
 
             <TouchableOpacity
@@ -362,7 +456,7 @@ export function MapScreen() {
                 onPress={recenter}
                 activeOpacity={0.7}
             >
-                <LocateFixed size={24} color="#007AFF" />
+                <LocateFixed size={24} color="#2E9E6B" />
             </TouchableOpacity>
 
             <BottomSheet
@@ -472,7 +566,7 @@ export function MapScreen() {
                         <View style={styles.sheetIconCircle}>
                             <MapPin
                                 size={28}
-                                color="#4F46E5"
+                                color="#2E9E6B"
                                 strokeWidth={2.5}
                             />
                         </View>
@@ -524,8 +618,28 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 4,
     },
-    searchBarFocused: { borderWidth: 1.5, borderColor: "#4F46E5" },
+    searchBarFocused: { borderWidth: 1.5, borderColor: "#2E9E6B" },
     searchInput: { flex: 1, fontSize: 15, color: "#111", paddingVertical: 0 },
+
+    filterScroll: { marginTop: 10 },
+    filterRow: { gap: 8, paddingRight: 8 },
+    filterPill: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5,
+        paddingHorizontal: 12,
+        paddingVertical: 7,
+        borderRadius: 20,
+        backgroundColor: "#fff",
+        borderWidth: 1.5,
+        borderColor: "#e0e0e0",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    filterPillText: { fontSize: 13, fontWeight: "600", color: "#555" },
 
     recenterButton: {
         position: "absolute",
@@ -594,7 +708,7 @@ const styles = StyleSheet.create({
     },
     textArea: { minHeight: 72, textAlignVertical: "top" },
     submitButton: {
-        backgroundColor: "#4F46E5",
+        backgroundColor: "#2E9E6B",
         borderRadius: 12,
         paddingVertical: 16,
         alignItems: "center",
@@ -614,7 +728,7 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: "#EEF2FF",
+        backgroundColor: "#2E9E6B18",
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 4,

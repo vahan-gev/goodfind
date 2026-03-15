@@ -22,6 +22,7 @@ export default defineSchema({
             v.literal("community_garden"),
             v.literal("pantry"),
             v.literal("other"),
+            v.literal("temporary"),
         ),
         name: v.string(),
         deals: v.array(v.id("deals")),

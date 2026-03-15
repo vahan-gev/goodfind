@@ -11,6 +11,7 @@ import {
     ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 import { BadgesSection } from "../../components/BadgesSection";
 
@@ -30,6 +31,7 @@ function UserProfile() {
     const { user } = useUser();
     const { signOut } = useAuth();
     const { isAuthenticated } = useConvexAuth();
+    const navigation = useNavigation();
     const storeUser = useMutation(api.users.store);
     const convexUser = useQuery(
         api.users.currentUser,
@@ -62,10 +64,7 @@ function UserProfile() {
     return (
         <ScrollView contentContainerStyle={styles.profileContainer}>
             {avatarUrl ? (
-                <Image
-                    source={{ uri: avatarUrl }}
-                    style={styles.avatar}
-                />
+                <Image source={{ uri: avatarUrl }} style={styles.avatar} />
             ) : (
                 <View style={styles.avatarPlaceholder}>
                     <Text style={styles.avatarInitial}>
@@ -80,15 +79,37 @@ function UserProfile() {
             {bio ? <Text style={styles.bio}>{bio}</Text> : null}
 
             <View style={styles.statsRow}>
-                <View style={styles.stat}>
+                <TouchableOpacity
+                    style={styles.stat}
+                    activeOpacity={0.6}
+                    onPress={() => {
+                        if (convexUser?._id) {
+                            (navigation as any).navigate("UserPins", {
+                                userId: convexUser._id,
+                                displayName: displayName,
+                            });
+                        }
+                    }}
+                >
                     <Text style={styles.statNumber}>{pinCount ?? 0}</Text>
                     <Text style={styles.statLabel}>Pins Made</Text>
-                </View>
+                </TouchableOpacity>
                 <View style={styles.statDivider} />
-                <View style={styles.stat}>
+                <TouchableOpacity
+                    style={styles.stat}
+                    activeOpacity={0.6}
+                    onPress={() => {
+                        if (convexUser?._id) {
+                            (navigation as any).navigate("UserDeals", {
+                                userId: convexUser._id,
+                                displayName: displayName,
+                            });
+                        }
+                    }}
+                >
                     <Text style={styles.statNumber}>{dealCount ?? 0}</Text>
                     <Text style={styles.statLabel}>Deals Posted</Text>
-                </View>
+                </TouchableOpacity>
             </View>
 
             <BadgesSection earnedBadges={convexUser?.badges ?? []} />
@@ -158,7 +179,7 @@ const styles = StyleSheet.create({
         width: 96,
         height: 96,
         borderRadius: 48,
-        backgroundColor: "#4F46E5",
+        backgroundColor: "#2E9E6B",
         justifyContent: "center",
         alignItems: "center",
     },

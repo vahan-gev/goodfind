@@ -86,6 +86,27 @@ export const remove = mutation({
     },
 });
 
+export const myDealPinIds = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return [];
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+            .unique();
+        if (!user) return [];
+
+        const deals = await ctx.db
+            .query("deals")
+            .filter((q) => q.eq(q.field("authorId"), user._id))
+            .collect();
+
+        return [...new Set(deals.map((d) => d.pinId))];
+    },
+});
+
 export const listByPin = query({
     args: { pinId: v.id("pins") },
     handler: async (ctx, args) => {

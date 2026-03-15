@@ -115,7 +115,9 @@ export function PinDetailModal({
 
     const [view, setView] = useState<ViewState>("main");
     const [justReported, setJustReported] = useState(false);
-    const [justReportedDealIds, setJustReportedDealIds] = useState<Set<string>>(new Set());
+    const [justReportedDealIds, setJustReportedDealIds] = useState<Set<string>>(
+        new Set(),
+    );
     const [flagTarget, setFlagTarget] = useState<FlagTarget | null>(null);
 
     const [dealTitle, setDealTitle] = useState("");
@@ -294,7 +296,10 @@ export function PinDetailModal({
             setFlagReason("spam");
             setFlagNote("");
             if (flagTarget.type === "pin") setJustReported(true);
-            else setJustReportedDealIds((prev) => new Set([...prev, flagTarget.id]));
+            else
+                setJustReportedDealIds(
+                    (prev) => new Set([...prev, flagTarget.id]),
+                );
             setFlagTarget(null);
             setView("main");
             Alert.alert(
@@ -313,8 +318,8 @@ export function PinDetailModal({
             ? "Add Deal"
             : view === "report"
               ? flagTarget?.type === "deal"
-                ? "Report Deal"
-                : "Report Pin"
+                  ? "Report Deal"
+                  : "Report Pin"
               : "Pin Details";
 
     return (
@@ -385,20 +390,8 @@ export function PinDetailModal({
                             </View>
                             {isSignedIn && (
                                 <View style={st.actionRow}>
-                                    <TouchableOpacity
-                                        onPress={handleToggleSave}
-                                        style={st.actionCircle}
-                                        activeOpacity={0.6}
-                                    >
-                                        <Bookmark
-                                            size={22}
-                                            color={isSaved ? "#4F46E5" : "#999"}
-                                            fill={isSaved ? "#4F46E5" : "none"}
-                                            strokeWidth={2}
-                                        />
-                                    </TouchableOpacity>
-                                    {!isOwner && (
-                                        isReported ? (
+                                    {!isOwner &&
+                                        (isReported ? (
                                             <View style={st.actionCircle}>
                                                 <Flag size={22} color="#999" />
                                             </View>
@@ -406,15 +399,20 @@ export function PinDetailModal({
                                             <TouchableOpacity
                                                 style={st.actionCircle}
                                                 onPress={() => {
-                                                    setFlagTarget({ type: "pin", id: pin._id });
+                                                    setFlagTarget({
+                                                        type: "pin",
+                                                        id: pin._id,
+                                                    });
                                                     setView("report");
                                                 }}
                                                 activeOpacity={0.6}
                                             >
-                                                <Flag size={22} color="#F59E0B" />
+                                                <Flag
+                                                    size={22}
+                                                    color="#F59E0B"
+                                                />
                                             </TouchableOpacity>
-                                        )
-                                    )}
+                                        ))}
                                     {isOwner && (
                                         <TouchableOpacity
                                             style={st.actionCircle}
@@ -424,6 +422,18 @@ export function PinDetailModal({
                                             <Trash2 size={22} color="#DC2626" />
                                         </TouchableOpacity>
                                     )}
+                                    <TouchableOpacity
+                                        onPress={handleToggleSave}
+                                        style={st.actionCircle}
+                                        activeOpacity={0.6}
+                                    >
+                                        <Bookmark
+                                            size={22}
+                                            color={isSaved ? "#2E9E6B" : "#999"}
+                                            fill={isSaved ? "#2E9E6B" : "none"}
+                                            strokeWidth={2}
+                                        />
+                                    </TouchableOpacity>
                                 </View>
                             )}
                         </View>
@@ -441,14 +451,14 @@ export function PinDetailModal({
                                     style={st.addressAction}
                                     activeOpacity={0.6}
                                 >
-                                    <Copy size={16} color="#4F46E5" />
+                                    <Copy size={16} color="#2E9E6B" />
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     onPress={openInMaps}
                                     style={st.addressAction}
                                     activeOpacity={0.6}
                                 >
-                                    <ExternalLink size={16} color="#4F46E5" />
+                                    <ExternalLink size={16} color="#2E9E6B" />
                                 </TouchableOpacity>
                             </View>
                         ) : null}
@@ -480,7 +490,7 @@ export function PinDetailModal({
                         </TouchableOpacity>
 
                         <View style={st.sectionHeader}>
-                            <Tag size={16} color="#4F46E5" />
+                            <Tag size={16} color="#2E9E6B" />
                             <Text style={st.sectionTitle}>Deals</Text>
                             {isSignedIn && (
                                 <TouchableOpacity
@@ -488,7 +498,7 @@ export function PinDetailModal({
                                     style={st.addDealBtn}
                                     activeOpacity={0.7}
                                 >
-                                    <Plus size={16} color="#4F46E5" />
+                                    <Plus size={16} color="#2E9E6B" />
                                     <Text style={st.addDealBtnText}>Add</Text>
                                 </TouchableOpacity>
                             )}
@@ -496,95 +506,144 @@ export function PinDetailModal({
 
                         {deals && deals.length > 0 ? (
                             deals.map((deal) => {
-                                const isDealAuthor = currentUser?._id === deal.authorId;
+                                const isDealAuthor =
+                                    currentUser?._id === deal.authorId;
                                 const isDealReported =
-                                    (currentUser?._id && deal.flaggedByUsers.includes(currentUser._id)) ||
+                                    (currentUser?._id &&
+                                        deal.flaggedByUsers.includes(
+                                            currentUser._id,
+                                        )) ||
                                     justReportedDealIds.has(deal._id);
                                 return (
-                                <View key={deal._id} style={st.dealCard}>
-                                    <View style={st.dealAuthorRow}>
-                                        {(deal as any).authorAvatarUrl ? (
-                                            <Image
-                                                source={{ uri: (deal as any).authorAvatarUrl }}
-                                                style={st.dealAuthorAvatar}
-                                            />
-                                        ) : (
-                                            <View style={st.dealAuthorAvatarPlaceholder}>
-                                                <User size={12} color="#fff" />
-                                            </View>
-                                        )}
-                                        <Text style={st.dealAuthorName}>
-                                            {(deal as any).authorDisplayName ?? "Unknown"}
-                                        </Text>
-                                    </View>
-                                    <View style={st.dealCardHeader}>
-                                        <Text style={st.dealTitle}>
-                                            {deal.title}
-                                        </Text>
-                                        {isSignedIn && (
-                                            <View style={st.dealActions}>
-                                                {!isDealAuthor && (
-                                                    isDealReported ? (
-                                                        <View style={st.actionCircle}>
-                                                            <Flag size={20} color="#999" />
-                                                        </View>
-                                                    ) : (
-                                                        <TouchableOpacity
-                                                            style={st.actionCircle}
-                                                            onPress={() => {
-                                                                setFlagTarget({ type: "deal", id: deal._id });
-                                                                setView("report");
-                                                            }}
-                                                            activeOpacity={0.6}
-                                                        >
-                                                            <Flag size={20} color="#F59E0B" />
-                                                        </TouchableOpacity>
-                                                    )
-                                                )}
-                                                {isDealAuthor && (
-                                                    <TouchableOpacity
-                                                        style={st.actionCircle}
-                                                        onPress={() => handleDeleteDeal(deal._id)}
-                                                        activeOpacity={0.6}
-                                                    >
-                                                        <Trash2 size={20} color="#DC2626" />
-                                                    </TouchableOpacity>
-                                                )}
-                                            </View>
-                                        )}
-                                    </View>
-                                    
-                                    <Text style={st.dealDesc}>
-                                        {deal.description}
-                                    </Text>
-                                    <View style={st.dealMeta}>
-                                        <View style={st.dealMetaItem}>
-                                            <CalendarDays
-                                                size={13}
-                                                color="#888"
-                                            />
-                                            <Text style={st.dealMetaText}>
-                                                {formatDaysLabel(
-                                                    deal.schedule?.days as Day[],
-                                                )}
+                                    <View key={deal._id} style={st.dealCard}>
+                                        <View style={st.dealAuthorRow}>
+                                            {(deal as any).authorAvatarUrl ? (
+                                                <Image
+                                                    source={{
+                                                        uri: (deal as any)
+                                                            .authorAvatarUrl,
+                                                    }}
+                                                    style={st.dealAuthorAvatar}
+                                                />
+                                            ) : (
+                                                <View
+                                                    style={
+                                                        st.dealAuthorAvatarPlaceholder
+                                                    }
+                                                >
+                                                    <User
+                                                        size={12}
+                                                        color="#fff"
+                                                    />
+                                                </View>
+                                            )}
+                                            <Text style={st.dealAuthorName}>
+                                                {(deal as any)
+                                                    .authorDisplayName ??
+                                                    "Unknown"}
                                             </Text>
                                         </View>
-                                        {deal.schedule?.expiresAt && (
+                                        <View style={st.dealCardHeader}>
+                                            <Text style={st.dealTitle}>
+                                                {deal.title}
+                                            </Text>
+                                            {isSignedIn && (
+                                                <View style={st.dealActions}>
+                                                    {!isDealAuthor &&
+                                                        (isDealReported ? (
+                                                            <View
+                                                                style={
+                                                                    st.actionCircle
+                                                                }
+                                                            >
+                                                                <Flag
+                                                                    size={20}
+                                                                    color="#999"
+                                                                />
+                                                            </View>
+                                                        ) : (
+                                                            <TouchableOpacity
+                                                                style={
+                                                                    st.actionCircle
+                                                                }
+                                                                onPress={() => {
+                                                                    setFlagTarget(
+                                                                        {
+                                                                            type: "deal",
+                                                                            id: deal._id,
+                                                                        },
+                                                                    );
+                                                                    setView(
+                                                                        "report",
+                                                                    );
+                                                                }}
+                                                                activeOpacity={
+                                                                    0.6
+                                                                }
+                                                            >
+                                                                <Flag
+                                                                    size={20}
+                                                                    color="#F59E0B"
+                                                                />
+                                                            </TouchableOpacity>
+                                                        ))}
+                                                    {isDealAuthor && (
+                                                        <TouchableOpacity
+                                                            style={
+                                                                st.actionCircle
+                                                            }
+                                                            onPress={() =>
+                                                                handleDeleteDeal(
+                                                                    deal._id,
+                                                                )
+                                                            }
+                                                            activeOpacity={0.6}
+                                                        >
+                                                            <Trash2
+                                                                size={20}
+                                                                color="#DC2626"
+                                                            />
+                                                        </TouchableOpacity>
+                                                    )}
+                                                </View>
+                                            )}
+                                        </View>
+
+                                        <Text style={st.dealDesc}>
+                                            {deal.description}
+                                        </Text>
+                                        <View style={st.dealMeta}>
                                             <View style={st.dealMetaItem}>
-                                                <Timer
+                                                <CalendarDays
                                                     size={13}
                                                     color="#888"
                                                 />
                                                 <Text style={st.dealMetaText}>
-                                                    Expires{" "}
-                                                    {new Date(
-                                                        deal.schedule.expiresAt,
-                                                    ).toLocaleDateString()}
+                                                    {formatDaysLabel(
+                                                        deal.schedule
+                                                            ?.days as Day[],
+                                                    )}
                                                 </Text>
                                             </View>
-                                        )}
+                                            {deal.schedule?.expiresAt && (
+                                                <View style={st.dealMetaItem}>
+                                                    <Timer
+                                                        size={13}
+                                                        color="#888"
+                                                    />
+                                                    <Text
+                                                        style={st.dealMetaText}
+                                                    >
+                                                        Expires{" "}
+                                                        {new Date(
+                                                            deal.schedule
+                                                                .expiresAt,
+                                                        ).toLocaleDateString()}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </View>
                                     </View>
-                                </View>
                                 );
                             })
                         ) : (
@@ -662,9 +721,7 @@ export function PinDetailModal({
                                             st.chip,
                                             active && st.chipActive,
                                         ]}
-                                        onPress={() =>
-                                            setDealExpiry(opt.value)
-                                        }
+                                        onPress={() => setDealExpiry(opt.value)}
                                         activeOpacity={0.7}
                                     >
                                         <Text
@@ -739,11 +796,17 @@ export function PinDetailModal({
                         <TouchableOpacity
                             style={[
                                 st.flagSubmitBtn,
-                                (!flagNote.trim() || !flagTarget || flagSubmitting) &&
+                                (!flagNote.trim() ||
+                                    !flagTarget ||
+                                    flagSubmitting) &&
                                     st.submitBtnDisabled,
                             ]}
                             onPress={handleSubmitFlag}
-                            disabled={!flagNote.trim() || !flagTarget || flagSubmitting}
+                            disabled={
+                                !flagNote.trim() ||
+                                !flagTarget ||
+                                flagSubmitting
+                            }
                             activeOpacity={0.8}
                         >
                             {flagSubmitting ? (
@@ -843,7 +906,7 @@ const st = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 8,
-        backgroundColor: "#EEF2FF",
+        backgroundColor: "#2E9E6B18",
         justifyContent: "center",
         alignItems: "center",
     },
@@ -863,12 +926,12 @@ const st = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: "#4F46E5",
+        backgroundColor: "#2E9E6B",
         justifyContent: "center",
         alignItems: "center",
     },
     authorName: { flex: 1, fontSize: 15, fontWeight: "600", color: "#222" },
-    authorHint: { fontSize: 12, color: "#4F46E5", fontWeight: "500" },
+    authorHint: { fontSize: 12, color: "#2E9E6B", fontWeight: "500" },
     actionRow: { flexDirection: "row", gap: 8 },
     sectionHeader: {
         flexDirection: "row",
@@ -889,12 +952,12 @@ const st = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 4,
-        backgroundColor: "#EEF2FF",
+        backgroundColor: "#2E9E6B18",
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 8,
     },
-    addDealBtnText: { color: "#4F46E5", fontWeight: "600", fontSize: 13 },
+    addDealBtnText: { color: "#2E9E6B", fontWeight: "600", fontSize: 13 },
     dealCard: {
         backgroundColor: "#FAFAFA",
         borderWidth: 1,
@@ -922,7 +985,7 @@ const st = StyleSheet.create({
         width: 24,
         height: 24,
         borderRadius: 12,
-        backgroundColor: "#4F46E5",
+        backgroundColor: "#2E9E6B",
         justifyContent: "center",
         alignItems: "center",
     },
@@ -970,12 +1033,12 @@ const st = StyleSheet.create({
         borderColor: "#ddd",
         backgroundColor: "#fff",
     },
-    chipActive: { backgroundColor: "#4F46E5", borderColor: "#4F46E5" },
+    chipActive: { backgroundColor: "#2E9E6B", borderColor: "#2E9E6B" },
     chipFlagActive: { backgroundColor: "#F59E0B", borderColor: "#F59E0B" },
     chipText: { fontSize: 13, color: "#555", fontWeight: "500" },
     chipTextActive: { color: "#fff", fontWeight: "700" },
     submitBtn: {
-        backgroundColor: "#4F46E5",
+        backgroundColor: "#2E9E6B",
         borderRadius: 12,
         paddingVertical: 16,
         alignItems: "center",

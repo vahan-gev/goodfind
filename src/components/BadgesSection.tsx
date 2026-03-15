@@ -10,65 +10,75 @@ interface Props {
 export function BadgesSection({ earnedBadges, showLocked = true }: Props) {
     const earnedSet = new Set(earnedBadges);
 
+    const hasVisibleBadges =
+        showLocked ||
+        BADGE_CATEGORIES.some((cat) => cat.ids.some((id) => earnedSet.has(id)));
+
     return (
         <View style={st.section}>
             <Text style={st.sectionTitle}>Badges</Text>
+            {!hasVisibleBadges && (
+                <Text style={st.emptyText}>No badges earned yet</Text>
+            )}
             {BADGE_CATEGORIES.map((cat) => {
                 const visibleIds = showLocked
                     ? cat.ids
                     : cat.ids.filter((id) => earnedSet.has(id));
                 if (visibleIds.length === 0) return null;
                 return (
-                <View key={cat.label} style={st.category}>
-                    <Text style={st.categoryLabel}>{cat.label}</Text>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={st.row}
-                    >
-                        {visibleIds.map((id) => {
-                            const badge = BADGE_MAP[id];
-                            if (!badge) return null;
-                            const earned = earnedSet.has(id);
-                            const Icon = badge.icon;
-                            return (
-                                <View
-                                    key={id}
-                                    style={[
-                                        st.badgeItem,
-                                        !earned && st.badgeItemLocked,
-                                    ]}
-                                >
+                    <View key={cat.label} style={st.category}>
+                        <Text style={st.categoryLabel}>{cat.label}</Text>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={st.row}
+                        >
+                            {visibleIds.map((id) => {
+                                const badge = BADGE_MAP[id];
+                                if (!badge) return null;
+                                const earned = earnedSet.has(id);
+                                const Icon = badge.icon;
+                                return (
                                     <View
+                                        key={id}
                                         style={[
-                                            st.iconWrap,
-                                            earned
-                                                ? st.iconWrapEarned
-                                                : st.iconWrapLocked,
+                                            st.badgeItem,
+                                            !earned && st.badgeItemLocked,
                                         ]}
                                     >
-                                        <Icon
-                                            width={42}
-                                            height={42}
-                                            opacity={earned ? 1 : 0.3}
-                                        />
+                                        <View
+                                            style={[
+                                                st.iconWrap,
+                                                earned
+                                                    ? st.iconWrapEarned
+                                                    : st.iconWrapLocked,
+                                            ]}
+                                        >
+                                            <Icon
+                                                width={42}
+                                                height={42}
+                                                opacity={earned ? 1 : 0.3}
+                                            />
+                                        </View>
+                                        <Text
+                                            style={[
+                                                st.badgeLabel,
+                                                !earned && st.badgeLabelLocked,
+                                            ]}
+                                        >
+                                            {badge.label}
+                                        </Text>
+                                        <Text
+                                            style={st.badgeDesc}
+                                            numberOfLines={2}
+                                        >
+                                            {badge.description}
+                                        </Text>
                                     </View>
-                                    <Text
-                                        style={[
-                                            st.badgeLabel,
-                                            !earned && st.badgeLabelLocked,
-                                        ]}
-                                    >
-                                        {badge.label}
-                                    </Text>
-                                    <Text style={st.badgeDesc} numberOfLines={2}>
-                                        {badge.description}
-                                    </Text>
-                                </View>
-                            );
-                        })}
-                    </ScrollView>
-                </View>
+                                );
+                            })}
+                        </ScrollView>
+                    </View>
                 );
             })}
         </View>
@@ -92,7 +102,7 @@ const st = StyleSheet.create({
     categoryLabel: {
         fontSize: 13,
         fontWeight: "700",
-        color: "#4F46E5",
+        color: "#2E9E6B",
         textTransform: "uppercase",
         letterSpacing: 0.8,
         marginBottom: 12,
@@ -118,7 +128,7 @@ const st = StyleSheet.create({
         alignItems: "center",
     },
     iconWrapEarned: {
-        backgroundColor: "#EEF2FF",
+        backgroundColor: "#2E9E6B18",
     },
     iconWrapLocked: {
         backgroundColor: "#f0f0f0",
@@ -138,5 +148,12 @@ const st = StyleSheet.create({
         color: "#888",
         textAlign: "center",
         lineHeight: 13,
+    },
+    emptyText: {
+        fontSize: 14,
+        color: "#999",
+        textAlign: "center",
+        marginTop: 8,
+        lineHeight: 20,
     },
 });

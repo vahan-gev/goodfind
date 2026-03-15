@@ -90,6 +90,40 @@ export const getDealCount = query({
     },
 });
 
+export const getUserPins = query({
+    args: { userId: v.id("users") },
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("pins")
+            .filter((q) => q.eq(q.field("ownerId"), args.userId))
+            .order("desc")
+            .collect();
+    },
+});
+
+export const getUserDeals = query({
+    args: { userId: v.id("users") },
+    handler: async (ctx, args) => {
+        const deals = await ctx.db
+            .query("deals")
+            .filter((q) => q.eq(q.field("authorId"), args.userId))
+            .order("desc")
+            .collect();
+        const withPinNames = await Promise.all(
+            deals.map(async (deal) => {
+                const pin = await ctx.db.get(deal.pinId);
+                return {
+                    ...deal,
+                    pinName: pin?.name ?? "Unknown Pin",
+                    pinAddress: pin?.address ?? "",
+                    pinType: pin?.type ?? "other",
+                };
+            }),
+        );
+        return withPinNames;
+    },
+});
+
 export const toggleSavePin = mutation({
     args: { pinId: v.id("pins") },
     handler: async (ctx, args) => {

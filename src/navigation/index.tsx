@@ -5,17 +5,19 @@ import {
     StaticParamList,
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { Settings } from "./screens/Settings";
-import { NotFound } from "./screens/NotFound";
 import { Bookmark, Map, User } from "lucide-react-native";
 import { MapScreen } from "./screens/MapScreen";
 import { SavedScreen } from "./screens/SavedScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { UserProfileScreen } from "./screens/UserProfileScreen";
+import { UserPinsScreen } from "./screens/UserPinsScreen";
+import { UserDealsScreen } from "./screens/UserDealsScreen";
 
 const HomeTabs = createBottomTabNavigator({
     screenOptions: {
         headerShown: false,
+        tabBarActiveTintColor: "#2E9E6B",
+        tabBarInactiveTintColor: "#999",
     },
     screens: {
         Map: {
@@ -30,16 +32,24 @@ const HomeTabs = createBottomTabNavigator({
         Saved: {
             screen: SavedScreen,
             options: {
-                tabBarIcon: ({ color, size }) => (
-                    <Bookmark color={color} size={size} />
+                tabBarIcon: ({ color, size, focused }) => (
+                    <Bookmark
+                        color={color}
+                        size={size}
+                        fill={focused ? color : "none"}
+                    />
                 ),
             },
         },
         Profile: {
             screen: ProfileScreen,
             options: {
-                tabBarIcon: ({ color, size }) => (
-                    <User color={color} size={size} />
+                tabBarIcon: ({ color, size, focused }) => (
+                    <User
+                        color={color}
+                        size={size}
+                        fill={focused ? color : "none"}
+                    />
                 ),
             },
         },
@@ -61,24 +71,16 @@ const RootStack = createNativeStackNavigator({
                 headerShown: false,
             },
         },
-        Settings: {
-            screen: Settings,
-            options: ({ navigation }) => ({
-                presentation: "modal",
-                headerRight: () => (
-                    <HeaderButton onPress={navigation.goBack}>
-                        <Text>Close</Text>
-                    </HeaderButton>
-                ),
-            }),
-        },
-        NotFound: {
-            screen: NotFound,
+        UserPins: {
+            screen: UserPinsScreen,
             options: {
-                title: "404",
+                headerShown: false,
             },
-            linking: {
-                path: "*",
+        },
+        UserDeals: {
+            screen: UserDealsScreen,
+            options: {
+                headerShown: false,
             },
         },
     },

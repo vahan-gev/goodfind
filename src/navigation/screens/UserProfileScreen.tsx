@@ -41,10 +41,7 @@ export function UserProfileScreen() {
 
     const isOwner = currentUser?._id === userId;
     const isBlocked = useMemo(
-        () =>
-            (currentUser?.blockedUsers ?? []).includes(
-                userId as Id<"users">,
-            ),
+        () => (currentUser?.blockedUsers ?? []).includes(userId as Id<"users">),
         [currentUser, userId],
     );
 
@@ -110,15 +107,33 @@ export function UserProfileScreen() {
                     ) : null}
 
                     <View style={styles.statsRow}>
-                        <View style={styles.stat}>
+                        <TouchableOpacity
+                            style={styles.stat}
+                            activeOpacity={0.6}
+                            onPress={() => {
+                                (navigation as any).navigate("UserPins", {
+                                    userId,
+                                    displayName: profileUser.displayName,
+                                });
+                            }}
+                        >
                             <Text style={styles.statNum}>{pinCount ?? 0}</Text>
                             <Text style={styles.statLabel}>Pins Made</Text>
-                        </View>
+                        </TouchableOpacity>
                         <View style={styles.statDivider} />
-                        <View style={styles.stat}>
+                        <TouchableOpacity
+                            style={styles.stat}
+                            activeOpacity={0.6}
+                            onPress={() => {
+                                (navigation as any).navigate("UserDeals", {
+                                    userId,
+                                    displayName: profileUser.displayName,
+                                });
+                            }}
+                        >
                             <Text style={styles.statNum}>{dealCount ?? 0}</Text>
                             <Text style={styles.statLabel}>Deals Posted</Text>
-                        </View>
+                        </TouchableOpacity>
                     </View>
 
                     {isSignedIn && !isOwner && (
@@ -145,7 +160,10 @@ export function UserProfileScreen() {
                         </TouchableOpacity>
                     )}
 
-                    <BadgesSection earnedBadges={profileUser.badges ?? []} showLocked={false} />
+                    <BadgesSection
+                        earnedBadges={profileUser.badges ?? []}
+                        showLocked={false}
+                    />
                 </ScrollView>
             )}
         </SafeAreaView>
@@ -185,7 +203,7 @@ const styles = StyleSheet.create({
         width: 96,
         height: 96,
         borderRadius: 48,
-        backgroundColor: "#4F46E5",
+        backgroundColor: "#2E9E6B",
         justifyContent: "center",
         alignItems: "center",
     },
@@ -219,5 +237,4 @@ const styles = StyleSheet.create({
     blockBtnActive: { backgroundColor: "#DC2626", borderColor: "#DC2626" },
     blockBtnText: { fontSize: 16, fontWeight: "600", color: "#DC2626" },
     blockBtnTextActive: { color: "#fff" },
-
 });

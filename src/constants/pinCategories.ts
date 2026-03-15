@@ -13,7 +13,6 @@ import IconCommunityGarden from "../assets/icons/icon_community_garden.svg";
 import IconPantry from "../assets/icons/icon_pantry.svg";
 import IconOther from "../assets/icons/icon_other.svg";
 
-import type { ImageRequireSource } from "react-native";
 import type { SvgProps } from "react-native-svg";
 import type { FC } from "react";
 
@@ -30,7 +29,6 @@ export interface PinCategory {
     type: PinType;
     label: string;
     pinIcon: FC<SvgProps>;
-    pinImage: ImageRequireSource;
     icon: FC<SvgProps>;
     color: string;
 }
@@ -40,7 +38,6 @@ export const PIN_CATEGORIES: PinCategory[] = [
         type: "food_bank",
         label: "Food Bank",
         pinIcon: PinFoodBank,
-        pinImage: require("../assets/pins/png/pin_food_bank.png"),
         icon: IconFoodBank,
         color: "#E8593C",
     },
@@ -48,7 +45,6 @@ export const PIN_CATEGORIES: PinCategory[] = [
         type: "grocery",
         label: "Grocery",
         pinIcon: PinGrocery,
-        pinImage: require("../assets/pins/png/pin_grocery.png"),
         icon: IconGrocery,
         color: "#2E9E6B",
     },
@@ -56,7 +52,6 @@ export const PIN_CATEGORIES: PinCategory[] = [
         type: "farmers_market",
         label: "Farmers Market",
         pinIcon: PinFarmersMarket,
-        pinImage: require("../assets/pins/png/pin_farmers_market.png"),
         icon: IconFarmersMarket,
         color: "#F2A623",
     },
@@ -64,7 +59,6 @@ export const PIN_CATEGORIES: PinCategory[] = [
         type: "community_garden",
         label: "Community Garden",
         pinIcon: PinCommunityGarden,
-        pinImage: require("../assets/pins/png/pin_community_garden.png"),
         icon: IconCommunityGarden,
         color: "#6BBF6D",
     },
@@ -72,7 +66,6 @@ export const PIN_CATEGORIES: PinCategory[] = [
         type: "pantry",
         label: "Pantry",
         pinIcon: PinPantry,
-        pinImage: require("../assets/pins/png/pin_pantry.png"),
         icon: IconPantry,
         color: "#6C91F6",
     },
@@ -80,7 +73,6 @@ export const PIN_CATEGORIES: PinCategory[] = [
         type: "other",
         label: "Other",
         pinIcon: PinOther,
-        pinImage: require("../assets/pins/png/pin_other.png"),
         icon: IconOther,
         color: "#888780",
     },
@@ -88,7 +80,6 @@ export const PIN_CATEGORIES: PinCategory[] = [
         type: "temporary",
         label: "Temporary",
         pinIcon: PinTemporary,
-        pinImage: require("../assets/pins/png/pin_temporary.png"),
         icon: IconOther,
         color: "#888780",
     },

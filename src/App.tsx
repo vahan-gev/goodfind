@@ -12,9 +12,7 @@ import { resourceCache } from "@clerk/expo/resource-cache";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 
-Asset.loadAsync([
-    ...NavigationAssets,
-]);
+Asset.loadAsync([...NavigationAssets]);
 
 SplashScreen.preventAutoHideAsync();
 

@@ -20,6 +20,9 @@ import * as Location from "expo-location";
 import {
     LocateFixed,
     MapPin,
+    MapPinPlus,
+    Navigation,
+    Plus,
     Search,
     Tag,
     UserCheck,
@@ -90,6 +93,18 @@ export function MapScreen() {
     const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(
         new Set(),
     );
+
+    const [addStep, setAddStep] = useState<"address" | "form">("form");
+    const [addrQuery, setAddrQuery] = useState("");
+    const [addrResults, setAddrResults] = useState<
+        { address: string; coords: LatLng }[]
+    >([]);
+    const [addrSelected, setAddrSelected] = useState<{
+        address: string;
+        coords: LatLng;
+    } | null>(null);
+    const [addrSearching, setAddrSearching] = useState(false);
+    const addrTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const { isSignedIn } = useAuth();
     const pins = useQuery(api.pins.list);
@@ -268,12 +283,89 @@ export function MapScreen() {
         } catch {}
     }, []);
 
+    useEffect(() => {
+        if (addrTimerRef.current) clearTimeout(addrTimerRef.current);
+        const q = addrQuery.trim();
+        if (q.length < 3) {
+            setAddrResults([]);
+            return;
+        }
+        setAddrSearching(true);
+        addrTimerRef.current = setTimeout(async () => {
+            try {
+                const coords = await Location.geocodeAsync(q);
+                const top = coords.slice(0, 5);
+                const enriched = await Promise.all(
+                    top.map(async (c) => {
+                        const rev = await Location.reverseGeocodeAsync(c);
+                        const r = rev[0];
+                        const parts = [
+                            r?.streetNumber,
+                            r?.street,
+                            r?.city,
+                            r?.region,
+                            r?.postalCode,
+                        ].filter(Boolean);
+                        return {
+                            address: parts.length > 0 ? parts.join(", ") : q,
+                            coords: {
+                                latitude: c.latitude,
+                                longitude: c.longitude,
+                            },
+                        };
+                    }),
+                );
+                setAddrResults(enriched);
+            } catch {
+                setAddrResults([]);
+            } finally {
+                setAddrSearching(false);
+            }
+        }, 400);
+        return () => {
+            if (addrTimerRef.current) clearTimeout(addrTimerRef.current);
+        };
+    }, [addrQuery]);
+
+    const handleAddrContinue = useCallback(() => {
+        if (!addrSelected) return;
+        setPendingPin(addrSelected.coords);
+        setAddress(addrSelected.address);
+        mapRef.current?.animateToRegion(
+            {
+                ...addrSelected.coords,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+            },
+            500,
+        );
+        setAddStep("form");
+        setTimeout(() => {
+            addSheetRef.current?.snapToIndex(1);
+        }, 100);
+    }, [addrSelected]);
+
+    const handleAddPinFab = useCallback(() => {
+        Keyboard.dismiss();
+        setAddrQuery("");
+        setAddrResults([]);
+        setAddrSelected(null);
+        setAddStep("address");
+        setTimeout(() => {
+            addSheetRef.current?.expand();
+        }, 100);
+    }, []);
+
     const resetAddForm = useCallback(() => {
         setSelectedType(null);
         setName("");
         setDescription("");
         setAddress("");
         setPendingPin(null);
+        setAddStep("form");
+        setAddrQuery("");
+        setAddrResults([]);
+        setAddrSelected(null);
     }, []);
 
     const recenter = () => {
@@ -299,6 +391,7 @@ export function MapScreen() {
         const { coordinate } = event.nativeEvent;
         setPendingPin(coordinate);
         reverseGeocode(coordinate);
+        setAddStep("form");
         setTimeout(() => {
             addSheetRef.current?.expand();
         }, 300);
@@ -309,6 +402,14 @@ export function MapScreen() {
             Keyboard.dismiss();
             addSheetRef.current?.close();
             resetAddForm();
+            mapRef.current?.animateToRegion(
+                {
+                    ...pin.coordinates,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                },
+                500,
+            );
             setSelectedPin(pin);
             setDetailVisible(true);
         },
@@ -336,7 +437,10 @@ export function MapScreen() {
             setSearchFocused(false);
             resetAddForm();
         } catch (err: any) {
-            Alert.alert("Error", err.message ?? "Failed to create pin");
+            Alert.alert(
+                "Error",
+                "Failed to create pin. Try changing the address or category.",
+            );
         } finally {
             setSubmitting(false);
         }
@@ -459,6 +563,14 @@ export function MapScreen() {
             </View>
 
             <TouchableOpacity
+                style={styles.addPinButton}
+                onPress={handleAddPinFab}
+                activeOpacity={0.7}
+            >
+                <Plus size={26} color="#fff" strokeWidth={2.5} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
                 style={styles.recenterButton}
                 onPress={recenter}
                 activeOpacity={0.7}
@@ -469,105 +581,208 @@ export function MapScreen() {
             <BottomSheet
                 ref={addSheetRef}
                 index={-1}
-                snapPoints={["60%", "90%"]}
+                snapPoints={["55%", "75%"]}
                 enablePanDownToClose
+                enableDynamicSizing={false}
                 onClose={resetAddForm}
-                keyboardBehavior="interactive"
-                keyboardBlurBehavior="restore"
+                keyboardBehavior="fillParent"
+                keyboardBlurBehavior="none"
                 android_keyboardInputMode="adjustResize"
             >
                 {isSignedIn ? (
-                    <BottomSheetScrollView
-                        contentContainerStyle={styles.formContainer}
-                        keyboardShouldPersistTaps="handled"
-                    >
-                        <Text style={styles.formTitle}>Add a Pin</Text>
-                        <Text style={styles.formSubtitle}>
-                            Share a food resource with the community
-                        </Text>
+                    addStep === "address" ? (
+                        <BottomSheetScrollView
+                            contentContainerStyle={styles.formContainer}
+                            keyboardShouldPersistTaps="handled"
+                        >
+                            <View
+                                style={[
+                                    styles.sheetIconCircle,
+                                    { alignSelf: "center" },
+                                ]}
+                            >
+                                <MapPinPlus
+                                    size={28}
+                                    color="#2E9E6B"
+                                    strokeWidth={2.5}
+                                />
+                            </View>
+                            <Text style={styles.formTitle}>Add a Pin</Text>
+                            <Text style={styles.formSubtitle}>
+                                Enter an address to place your pin
+                            </Text>
 
-                        <Text style={styles.label}>Category</Text>
-                        <View style={styles.categoryRow}>
-                            {PIN_CATEGORIES.map((cat) => {
-                                const isSelected = selectedType === cat.type;
-                                const CatIcon = cat.icon;
-                                return (
-                                    <TouchableOpacity
-                                        key={cat.type}
-                                        style={[
-                                            styles.categoryChip,
-                                            isSelected && {
-                                                backgroundColor:
-                                                    cat.color + "18",
-                                                borderColor: cat.color,
-                                            },
-                                        ]}
-                                        onPress={() =>
-                                            setSelectedType(cat.type)
-                                        }
-                                        activeOpacity={0.7}
+                            <Text style={styles.label}>Address</Text>
+                            <BottomSheetTextInput
+                                style={styles.input}
+                                placeholder="Search for an address..."
+                                placeholderTextColor="#aaa"
+                                value={addrQuery}
+                                onChangeText={(t) => {
+                                    setAddrQuery(t);
+                                    setAddrSelected(null);
+                                }}
+                                autoFocus
+                            />
+
+                            {addrSearching && (
+                                <ActivityIndicator
+                                    size="small"
+                                    style={{ marginTop: 12 }}
+                                />
+                            )}
+
+                            {addrResults.length > 0 && !addrSelected && (
+                                <View style={styles.suggestionsBox}>
+                                    {addrResults.map((r, i) => (
+                                        <TouchableOpacity
+                                            key={`${r.coords.latitude}-${r.coords.longitude}-${i}`}
+                                            style={styles.suggestionItem}
+                                            onPress={() => {
+                                                setAddrSelected(r);
+                                                setAddrQuery(r.address);
+                                            }}
+                                            activeOpacity={0.6}
+                                        >
+                                            <Navigation
+                                                size={16}
+                                                color="#2E9E6B"
+                                            />
+                                            <Text
+                                                style={styles.suggestionText}
+                                                numberOfLines={2}
+                                            >
+                                                {r.address}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            )}
+
+                            {addrSelected && (
+                                <View style={styles.selectedAddrBox}>
+                                    <MapPin size={16} color="#2E9E6B" />
+                                    <Text
+                                        style={styles.selectedAddrText}
+                                        numberOfLines={2}
                                     >
-                                        <CatIcon width={20} height={20} />
-                                        <Text
+                                        {addrSelected.address}
+                                    </Text>
+                                </View>
+                            )}
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.continueButton,
+                                    !addrSelected &&
+                                        styles.submitButtonDisabled,
+                                ]}
+                                onPress={handleAddrContinue}
+                                disabled={!addrSelected}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.submitButtonText}>
+                                    Continue
+                                </Text>
+                            </TouchableOpacity>
+                        </BottomSheetScrollView>
+                    ) : (
+                        <BottomSheetScrollView
+                            contentContainerStyle={styles.formContainer}
+                            keyboardShouldPersistTaps="handled"
+                        >
+                            <Text style={styles.formTitle}>Add a Pin</Text>
+                            <Text style={styles.formSubtitle}>
+                                Share a food resource with the community
+                            </Text>
+
+                            <Text style={styles.label}>Category</Text>
+                            <View style={styles.categoryRow}>
+                                {PIN_CATEGORIES.filter(
+                                    (cat) => cat.type !== "temporary",
+                                ).map((cat) => {
+                                    const isSelected =
+                                        selectedType === cat.type;
+                                    const CatIcon = cat.icon;
+                                    return (
+                                        <TouchableOpacity
+                                            key={cat.type}
                                             style={[
-                                                styles.categoryLabel,
+                                                styles.categoryChip,
                                                 isSelected && {
-                                                    color: cat.color,
-                                                    fontWeight: "700",
+                                                    backgroundColor:
+                                                        cat.color + "18",
+                                                    borderColor: cat.color,
                                                 },
                                             ]}
+                                            onPress={() =>
+                                                setSelectedType(cat.type)
+                                            }
+                                            activeOpacity={0.7}
                                         >
-                                            {cat.label}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
+                                            <CatIcon width={20} height={20} />
+                                            <Text
+                                                style={[
+                                                    styles.categoryLabel,
+                                                    isSelected && {
+                                                        color: cat.color,
+                                                        fontWeight: "700",
+                                                    },
+                                                ]}
+                                            >
+                                                {cat.label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
 
-                        <Text style={styles.label}>Name</Text>
-                        <BottomSheetTextInput
-                            style={styles.input}
-                            placeholder="e.g. Downtown Food Pantry"
-                            placeholderTextColor="#aaa"
-                            value={name}
-                            onChangeText={setName}
-                        />
-                        <Text style={styles.label}>Description</Text>
-                        <BottomSheetTextInput
-                            style={[styles.input, styles.textArea]}
-                            placeholder="Hours, what's available, any details..."
-                            placeholderTextColor="#aaa"
-                            value={description}
-                            onChangeText={setDescription}
-                            multiline
-                        />
-                        <Text style={styles.label}>Address</Text>
-                        <BottomSheetTextInput
-                            style={styles.input}
-                            placeholder="Auto-filled from location"
-                            placeholderTextColor="#aaa"
-                            value={address}
-                            onChangeText={setAddress}
-                        />
+                            <Text style={styles.label}>Name</Text>
+                            <BottomSheetTextInput
+                                style={styles.input}
+                                placeholder="e.g. Downtown Food Pantry"
+                                placeholderTextColor="#aaa"
+                                value={name}
+                                onChangeText={setName}
+                            />
+                            <Text style={styles.label}>Description</Text>
+                            <BottomSheetTextInput
+                                style={[styles.input, styles.textArea]}
+                                placeholder="Hours, what's available, any details..."
+                                placeholderTextColor="#aaa"
+                                value={description}
+                                onChangeText={setDescription}
+                                multiline
+                            />
+                            <Text style={styles.label}>Address</Text>
+                            <BottomSheetTextInput
+                                style={styles.input}
+                                placeholder="Auto-filled from location"
+                                placeholderTextColor="#aaa"
+                                value={address}
+                                onChangeText={setAddress}
+                            />
 
-                        <TouchableOpacity
-                            style={[
-                                styles.submitButton,
-                                !canSubmitPin && styles.submitButtonDisabled,
-                            ]}
-                            onPress={handleSubmitPin}
-                            disabled={!canSubmitPin || submitting}
-                            activeOpacity={0.8}
-                        >
-                            {submitting ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <Text style={styles.submitButtonText}>
-                                    Add Pin
-                                </Text>
-                            )}
-                        </TouchableOpacity>
-                    </BottomSheetScrollView>
+                            <TouchableOpacity
+                                style={[
+                                    styles.submitButton,
+                                    !canSubmitPin &&
+                                        styles.submitButtonDisabled,
+                                ]}
+                                onPress={handleSubmitPin}
+                                disabled={!canSubmitPin || submitting}
+                                activeOpacity={0.8}
+                            >
+                                {submitting ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={styles.submitButtonText}>
+                                        Add Pin
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
+                        </BottomSheetScrollView>
+                    )
                 ) : (
                     <BottomSheetView style={styles.sheetSignIn}>
                         <View style={styles.sheetIconCircle}>
@@ -620,13 +835,15 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         paddingHorizontal: 14,
         paddingVertical: 10,
+        borderWidth: 1.5,
+        borderColor: "transparent",
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.12,
         shadowRadius: 6,
         elevation: 4,
     },
-    searchBarFocused: { borderWidth: 1.5, borderColor: "#2E9E6B" },
+    searchBarFocused: { borderColor: "#2E9E6B" },
     searchInput: { flex: 1, fontSize: 15, color: "#111", paddingVertical: 0 },
 
     filterScroll: { marginTop: 10 },
@@ -649,6 +866,22 @@ const styles = StyleSheet.create({
     },
     filterPillText: { fontSize: 13, fontWeight: "600", color: "#555" },
 
+    addPinButton: {
+        position: "absolute",
+        bottom: 80,
+        right: 16,
+        backgroundColor: "#2E9E6B",
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: "center",
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
     recenterButton: {
         position: "absolute",
         bottom: 24,
@@ -755,4 +988,48 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     sheetButtonWrapper: { width: "100%" },
+
+    suggestionsBox: {
+        marginTop: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#e8e8e8",
+        backgroundColor: "#fff",
+        overflow: "hidden",
+    },
+    suggestionItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        paddingVertical: 14,
+        paddingHorizontal: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: "#f0f0f0",
+    },
+    suggestionText: { flex: 1, fontSize: 14, color: "#333" },
+    selectedAddrBox: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        marginTop: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        borderRadius: 10,
+        backgroundColor: "#2E9E6B14",
+        borderWidth: 1,
+        borderColor: "#2E9E6B",
+    },
+    selectedAddrText: {
+        flex: 1,
+        fontSize: 14,
+        color: "#2E9E6B",
+        fontWeight: "500",
+    },
+    continueButton: {
+        backgroundColor: "#2E9E6B",
+        borderRadius: 12,
+        paddingVertical: 16,
+        alignItems: "center",
+        marginTop: 20,
+    },
 });

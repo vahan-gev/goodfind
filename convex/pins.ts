@@ -34,6 +34,20 @@ export const create = mutation({
             .unique();
         if (!user) throw new Error("User not found");
 
+        if (args.address.trim()) {
+            const existing = await ctx.db
+                .query("pins")
+                .filter((q) =>
+                    q.eq(q.field("address"), args.address.trim()),
+                )
+                .first();
+            if (existing) {
+                throw new Error(
+                    "A pin already exists at this address. Try adding a deal to the existing pin instead.",
+                );
+            }
+        }
+
         const now = Date.now();
         const pinId = await ctx.db.insert("pins", {
             ownerId: user._id,

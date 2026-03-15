@@ -1,65 +1,53 @@
-# Starter Template with React Navigation
+<img src="src/assets/logo/logo.png" alt="Logo" width="100" />
 
-This is a minimal starter template for React Native apps using Expo and React Navigation.
+# GoodFind  
 
-It includes the following:
+## Inspiration
 
-- Example [Native Stack](https://reactnavigation.org/docs/native-stack-navigator) with a nested [Bottom Tab](https://reactnavigation.org/docs/bottom-tab-navigator)
-- Web support with [React Native for Web](https://necolas.github.io/react-native-web/)
-- TypeScript support and configured for React Navigation
-- Automatic [deep link](https://reactnavigation.org/docs/deep-linking) and [URL handling configuration](https://reactnavigation.org/docs/configuring-links)
-- Theme support [based on system appearance](https://reactnavigation.org/docs/themes/#using-the-operating-system-preferences)
-- Expo [Development Build](https://docs.expo.dev/develop/development-builds/introduction/) with [Continuous Native Generation](https://docs.expo.dev/workflow/continuous-native-generation/)
+Food insecurity is often framed as a scarcity problem, but in cities like Los Angeles, the food exists. Food banks, farmers markets, community gardens, and grocery deals are scattered across every neighborhood. The real problem is visibility. People default to fast food not because they want to, but because they don't know what's nearby, what's on sale, or when a pantry is open. We wanted to build something that turns scattered local knowledge into a shared, living resource, so that the better choice is always the obvious one.
 
-## Getting Started
+## What it does
 
-1. Create a new project using this template:
+GoodFind is an app centered around a community-powered map where users can:
 
-   ```sh
-   npx create-expo-app@latest --template react-navigation/template
-   ```
+- Drop pins on food banks, grocery stores, farmers markets, community gardens, pantries, etc.
+- Attach deals to pins with titles, descriptions, and schedules (days + times + expiry)
+- Save pins they visit often
+- Flag inaccurate or outdated pins and deals
+- Filter the map by location type
+- Earn badges for contributing consistently
 
-2. Edit the `app.json` file to configure the `name`, `slug`, `scheme` and bundle identifiers (`ios.bundleIdentifier` and `android.bundleIdentifier`) for your app.
+## How we built it
 
-3. Edit the `src/App.tsx` file to start working on your app.
+1. Stack - Expo (React Native), Convex (backend + real-time), Clerk (auth), React Navigation, react-native-maps.
+2. Data model - Users, pins (with coordinates and categories), deals (with schedules and expiry), and flags. Pins can be saved, reported, and filtered by type.
+3. Features - Map with custom markers, add-pin flow (address search + form), pin detail modal, deals with schedules, badges, user profiles, blocking, and reporting.
+4. UI - Bottom tabs (Map, Saved, Profile), modals and bottom sheets, dark mode, and a simple badge system for engagement.
 
-## Running the app
+## Challenges we ran into
 
-- Install the dependencies:
+1. Custom SVG pin icons didn't anchor to their tip correctly when zooming. The anchor prop was the problem since its X and Y coordinates where staying the same while zooming in and out, so we had to find a different way for the positioning of the markers. 
+2. The transitions between Modals were getting messy, since the modals' positions were changing and the content was clipping.
 
-  ```sh
-  npm install
-  ```
+## Accomplishments that we're proud of
 
-- Start the development server:
+- Built a fully functional, real-time crowdsourced map app in a single day
+- Implemented a complete pin and deal system with scheduling, visibility controls, and flagging from scratch
+- Seeded the app with real Los Angeles food resources so it feels useful from day one
+- Designed a badge and reputation system that incentivizes healthy community contribution
 
-  ```sh
-  npm start
-  ```
+## What we learned
 
-- Build and run iOS and Android development builds:
+- We cut several features to ship something complete and polished rather than something overbuilt and half-finished
+- A real problem makes every decision easier, so because we were solving something concrete, every feature either served the mission or got cut
 
-  ```sh
-  npm run ios
-  # or
-  npm run android
-  ```
+## What's next for GoodFind
 
-- In the terminal running the development server, press `i` to open the iOS simulator, `a` to open the Android device or emulator, or `w` to open the web browser.
+GoodFind has a lot of space for growth, and here are some features we were thinking of adding:
 
-## Notes
+- Opening hours - separate from deals, pins can have weekly hours so users know if a location is open right now.
+- Push notifications - get alerted when a new deal is posted near you or on a pin you've saved.
+- Moderation System for Admins - heavily flagged pins/deals get auto-hidden pending review by admins instead of staying visible indefinitely.
+- Pin gallery - anyone can add photos to a public pin so people have a real visual of the place before they go, making pins more reliable and trustworthy.
 
-This project uses a [development build](https://docs.expo.dev/develop/development-builds/introduction/) and cannot be run with [Expo Go](https://expo.dev/go). To run the app with Expo Go, edit the `package.json` file, remove the `expo-dev-client` package and `--dev-client` flag from the `start` script.
 
-We highly recommend using the development builds for normal development and testing.
-
-The `ios` and `android` folder are gitignored in the project by default as they are automatically generated during the build process ([Continuous Native Generation](https://docs.expo.dev/workflow/continuous-native-generation/)). This means that you should not edit these folders directly and use [config plugins](https://docs.expo.dev/config-plugins/) instead. However, if you need to edit these folders, you can remove them from the `.gitignore` file so that they are tracked by git.
-
-## Resources
-
-- [React Navigation documentation](https://reactnavigation.org/)
-- [Expo documentation](https://docs.expo.dev/)
-
----
-
-Demo assets are from [lucide.dev](https://lucide.dev/)

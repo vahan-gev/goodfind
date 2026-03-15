@@ -18,9 +18,13 @@ import { useNavigation } from "@react-navigation/native";
 import { PIN_CATEGORY_MAP, type PinType } from "../../constants/pinCategories";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 import { PinDetailModal } from "../../components/PinDetailModal";
+import { useTheme } from "../../theme/ThemeContext";
+import type { ThemeColors } from "../../theme/colors";
 import type { Doc } from "../../../convex/_generated/dataModel";
 
 export function SavedScreen() {
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const { isSignedIn } = useAuth();
     const navigation = useNavigation();
     const currentUser = useQuery(
@@ -65,7 +69,7 @@ export function SavedScreen() {
             <SafeAreaView style={styles.container}>
                 <View style={styles.authContainer}>
                     <View style={styles.iconCircle}>
-                        <Bookmark size={32} color="#2E9E6B" strokeWidth={2} />
+                        <Bookmark size={32} color={colors.primary} strokeWidth={2} />
                     </View>
                     <Text style={styles.authTitle}>Your Saved Pins</Text>
                     <Text style={styles.authSubtitle}>
@@ -94,7 +98,7 @@ export function SavedScreen() {
             <SafeAreaView style={styles.container}>
                 <View style={styles.emptyContainer}>
                     <View style={styles.emptyIconCircle}>
-                        <Bookmark size={36} color="#ccc" strokeWidth={1.5} />
+                        <Bookmark size={36} color={colors.iconDisabled} strokeWidth={1.5} />
                     </View>
                     <Text style={styles.emptyTitle}>No saved pins yet</Text>
                     <Text style={styles.emptySubtitle}>
@@ -112,11 +116,11 @@ export function SavedScreen() {
 
             <View style={styles.searchWrapper}>
                 <View style={styles.searchBar}>
-                    <Search size={18} color="#888" />
+                    <Search size={18} color={colors.iconMuted} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search saved pins..."
-                        placeholderTextColor="#aaa"
+                        placeholderTextColor={colors.textPlaceholder}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                         returnKeyType="search"
@@ -126,7 +130,7 @@ export function SavedScreen() {
                             onPress={() => setSearchQuery("")}
                             activeOpacity={0.6}
                         >
-                            <X size={18} color="#888" />
+                            <X size={18} color={colors.iconMuted} />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -195,7 +199,7 @@ export function SavedScreen() {
                                             <View style={styles.cardAddressRow}>
                                                 <MapPinned
                                                     size={12}
-                                                    color="#aaa"
+                                                    color={colors.iconPlaceholder}
                                                 />
                                                 <Text
                                                     style={styles.cardAddress}
@@ -223,7 +227,7 @@ export function SavedScreen() {
                                             }}
                                             activeOpacity={0.6}
                                         >
-                                            <Map size={18} color="#2E9E6B" />
+                                            <Map size={18} color={colors.primary} />
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             style={styles.unsaveButton}
@@ -235,8 +239,8 @@ export function SavedScreen() {
                                         >
                                             <Bookmark
                                                 size={18}
-                                                color="#2E9E6B"
-                                                fill="#2E9E6B"
+                                                color={colors.primary}
+                                                fill={colors.primary}
                                                 strokeWidth={2}
                                             />
                                         </TouchableOpacity>
@@ -265,141 +269,143 @@ export function SavedScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#fff" },
-    centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-    screenTitle: {
-        fontSize: 28,
-        fontWeight: "700",
-        color: "#111",
-        paddingHorizontal: 24,
-        paddingTop: 8,
-        paddingBottom: 12,
-    },
+function createStyles(colors: ThemeColors) {
+    return StyleSheet.create({
+        container: { flex: 1, backgroundColor: colors.background },
+        centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+        screenTitle: {
+            fontSize: 28,
+            fontWeight: "700",
+            color: colors.text,
+            paddingHorizontal: 24,
+            paddingTop: 8,
+            paddingBottom: 12,
+        },
 
-    searchWrapper: { paddingHorizontal: 16, marginBottom: 12 },
-    searchBar: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        backgroundColor: "#F5F5F5",
-        borderRadius: 12,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-    },
-    searchInput: { flex: 1, fontSize: 15, color: "#111", paddingVertical: 0 },
+        searchWrapper: { paddingHorizontal: 16, marginBottom: 12 },
+        searchBar: {
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            backgroundColor: colors.backgroundSecondary,
+            borderRadius: 12,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+        },
+        searchInput: { flex: 1, fontSize: 15, color: colors.text, paddingVertical: 0 },
 
-    listContainer: { paddingHorizontal: 16, gap: 10, paddingBottom: 24 },
-    noResults: {
-        textAlign: "center",
-        color: "#aaa",
-        fontSize: 15,
-        paddingTop: 40,
-    },
+        listContainer: { paddingHorizontal: 16, gap: 10, paddingBottom: 24 },
+        noResults: {
+            textAlign: "center",
+            color: colors.textPlaceholder,
+            fontSize: 15,
+            paddingTop: 40,
+        },
 
-    authContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        paddingHorizontal: 32,
-        gap: 12,
-    },
-    iconCircle: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: "#2E9E6B18",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 8,
-    },
-    authTitle: {
-        fontSize: 24,
-        fontWeight: "700",
-        color: "#111",
-        textAlign: "center",
-    },
-    authSubtitle: {
-        fontSize: 15,
-        color: "#666",
-        textAlign: "center",
-        marginBottom: 16,
-    },
-    authButtonWrapper: { width: "100%" },
+        authContainer: {
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            paddingHorizontal: 32,
+            gap: 12,
+        },
+        iconCircle: {
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            backgroundColor: colors.primaryTint,
+            justifyContent: "center",
+            alignItems: "center",
+            marginBottom: 8,
+        },
+        authTitle: {
+            fontSize: 24,
+            fontWeight: "700",
+            color: colors.text,
+            textAlign: "center",
+        },
+        authSubtitle: {
+            fontSize: 15,
+            color: colors.textCaption,
+            textAlign: "center",
+            marginBottom: 16,
+        },
+        authButtonWrapper: { width: "100%" },
 
-    emptyContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        paddingHorizontal: 40,
-        gap: 10,
-    },
-    emptyIconCircle: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        backgroundColor: "#f5f5f5",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 8,
-    },
-    emptyTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#444",
-        textAlign: "center",
-    },
-    emptySubtitle: {
-        fontSize: 14,
-        color: "#999",
-        textAlign: "center",
-        lineHeight: 20,
-    },
+        emptyContainer: {
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            paddingHorizontal: 40,
+            gap: 10,
+        },
+        emptyIconCircle: {
+            width: 72,
+            height: 72,
+            borderRadius: 36,
+            backgroundColor: colors.backgroundSecondary,
+            justifyContent: "center",
+            alignItems: "center",
+            marginBottom: 8,
+        },
+        emptyTitle: {
+            fontSize: 20,
+            fontWeight: "700",
+            color: colors.textMuted,
+            textAlign: "center",
+        },
+        emptySubtitle: {
+            fontSize: 14,
+            color: colors.textDisabled,
+            textAlign: "center",
+            lineHeight: 20,
+        },
 
-    card: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#FAFAFA",
-        borderWidth: 1,
-        borderColor: "#eee",
-        borderRadius: 14,
-        padding: 14,
-        gap: 12,
-    },
-    cardIconCircle: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    cardContent: { flex: 1 },
-    cardName: { fontSize: 16, fontWeight: "700", color: "#222" },
-    cardMeta: { flexDirection: "row", marginTop: 4, gap: 6 },
-    cardBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5 },
-    cardBadgeText: { fontSize: 11, fontWeight: "600" },
-    cardAddressRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 4,
-        marginTop: 4,
-    },
-    cardAddress: { fontSize: 12, color: "#aaa", flex: 1 },
-    cardActions: { flexDirection: "column", gap: 6 },
-    viewOnMapButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: "#2E9E6B18",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    unsaveButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: "#2E9E6B18",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-});
+        card: {
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: colors.card,
+            borderWidth: 1,
+            borderColor: colors.cardBorder,
+            borderRadius: 14,
+            padding: 14,
+            gap: 12,
+        },
+        cardIconCircle: {
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            justifyContent: "center",
+            alignItems: "center",
+        },
+        cardContent: { flex: 1 },
+        cardName: { fontSize: 16, fontWeight: "700", color: colors.textSecondary },
+        cardMeta: { flexDirection: "row", marginTop: 4, gap: 6 },
+        cardBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5 },
+        cardBadgeText: { fontSize: 11, fontWeight: "600" },
+        cardAddressRow: {
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 4,
+            marginTop: 4,
+        },
+        cardAddress: { fontSize: 12, color: colors.textPlaceholder, flex: 1 },
+        cardActions: { flexDirection: "column", gap: 6 },
+        viewOnMapButton: {
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: colors.primaryTint,
+            justifyContent: "center",
+            alignItems: "center",
+        },
+        unsaveButton: {
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: colors.primaryTint,
+            justifyContent: "center",
+            alignItems: "center",
+        },
+    });
+}

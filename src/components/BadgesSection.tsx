@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { BADGE_CATEGORIES, BADGE_MAP } from "../constants/badges";
+import { useTheme } from "../theme/ThemeContext";
+import type { ThemeColors } from "../theme/colors";
 
 interface Props {
     earnedBadges: string[];
@@ -8,6 +10,8 @@ interface Props {
 }
 
 export function BadgesSection({ earnedBadges, showLocked = true }: Props) {
+    const { colors } = useTheme();
+    const st = useMemo(() => createStyles(colors), [colors]);
     const earnedSet = new Set(earnedBadges);
 
     const hasVisibleBadges =
@@ -85,7 +89,8 @@ export function BadgesSection({ earnedBadges, showLocked = true }: Props) {
     );
 }
 
-const st = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+    return StyleSheet.create({
     section: {
         width: "100%",
         marginTop: 32,
@@ -93,7 +98,7 @@ const st = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: "700",
-        color: "#111",
+        color: colors.text,
         marginBottom: 20,
     },
     category: {
@@ -102,7 +107,7 @@ const st = StyleSheet.create({
     categoryLabel: {
         fontSize: 13,
         fontWeight: "700",
-        color: "#2E9E6B",
+        color: colors.primary,
         textTransform: "uppercase",
         letterSpacing: 0.8,
         marginBottom: 12,
@@ -128,32 +133,33 @@ const st = StyleSheet.create({
         alignItems: "center",
     },
     iconWrapEarned: {
-        backgroundColor: "#2E9E6B18",
+        backgroundColor: colors.primaryTint,
     },
     iconWrapLocked: {
-        backgroundColor: "#f0f0f0",
+        backgroundColor: colors.cardBorderLight,
     },
     badgeLabel: {
         fontSize: 11,
         fontWeight: "700",
-        color: "#222",
+        color: colors.textSecondary,
         textAlign: "center",
         marginTop: 2,
     },
     badgeLabelLocked: {
-        color: "#aaa",
+        color: colors.textPlaceholder,
     },
     badgeDesc: {
         fontSize: 10,
-        color: "#888",
+        color: colors.textPlaceholder,
         textAlign: "center",
         lineHeight: 13,
     },
     emptyText: {
         fontSize: 14,
-        color: "#999",
+        color: colors.textDisabled,
         textAlign: "center",
         marginTop: 8,
         lineHeight: 20,
     },
 });
+}

@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useMemo } from "react";
+import { useTheme } from "../../theme/ThemeContext";
+import type { ThemeColors } from "../../theme/colors";
 import {
     ActivityIndicator,
     FlatList,
@@ -16,6 +18,8 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { PIN_CATEGORY_MAP, type PinType } from "../../constants/pinCategories";
 
 export function UserDealsScreen() {
+    const { colors } = useTheme();
+    const s = useMemo(() => createStyles(colors), [colors]);
     const route = useRoute<any>();
     const navigation = useNavigation();
     const { userId, displayName } = route.params as {
@@ -44,7 +48,7 @@ export function UserDealsScreen() {
                     style={s.backBtn}
                     activeOpacity={0.7}
                 >
-                    <ChevronLeft size={24} color="#111" />
+                    <ChevronLeft size={24} color={colors.icon} />
                 </TouchableOpacity>
                 <Text style={s.headerTitle}>
                     {displayName ? `${displayName}'s Deals` : "Deals Posted"}
@@ -58,7 +62,7 @@ export function UserDealsScreen() {
                 </View>
             ) : deals.length === 0 ? (
                 <View style={s.centered}>
-                    <Tag size={48} color="#ccc" />
+                    <Tag size={48} color={colors.iconDisabled} />
                     <Text style={s.emptyText}>No deals yet</Text>
                 </View>
             ) : (
@@ -86,10 +90,10 @@ export function UserDealsScreen() {
                                 <View
                                     style={[
                                         s.iconWrap,
-                                        { backgroundColor: "#10B98118" },
+                                        { backgroundColor: colors.dealsTint },
                                     ]}
                                 >
-                                    <Tag size={20} color="#10B981" />
+                                    <Tag size={20} color={colors.deals} />
                                 </View>
                                 <View style={s.cardBody}>
                                     <Text style={s.cardTitle} numberOfLines={1}>
@@ -113,7 +117,7 @@ export function UserDealsScreen() {
                                         {formatDate(item.createdAt)}
                                     </Text>
                                 </View>
-                                <ChevronRight size={18} color="#ccc" />
+                                <ChevronRight size={18} color={colors.iconDisabled} />
                             </TouchableOpacity>
                         );
                     }}
@@ -123,8 +127,9 @@ export function UserDealsScreen() {
     );
 }
 
-const s = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#fff" },
+function createStyles(colors: ThemeColors) {
+    return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
     header: {
         flexDirection: "row",
         alignItems: "center",
@@ -133,9 +138,9 @@ const s = StyleSheet.create({
         paddingTop: 8,
         paddingBottom: 16,
         borderBottomWidth: 1,
-        borderBottomColor: "#f0f0f0",
+        borderBottomColor: colors.cardBorderLight,
     },
-    headerTitle: { fontSize: 18, fontWeight: "700", color: "#111" },
+    headerTitle: { fontSize: 18, fontWeight: "700", color: colors.text },
     backBtn: {
         width: 40,
         height: 40,
@@ -149,22 +154,22 @@ const s = StyleSheet.create({
         alignItems: "center",
         gap: 12,
     },
-    emptyText: { fontSize: 16, color: "#999" },
+    emptyText: { fontSize: 16, color: colors.textDisabled },
     list: { padding: 16, gap: 10 },
     card: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#fff",
+        backgroundColor: colors.background,
         borderRadius: 14,
         padding: 14,
         gap: 12,
-        shadowColor: "#000",
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.08,
         shadowRadius: 4,
         elevation: 2,
         borderWidth: 1,
-        borderColor: "#f0f0f0",
+        borderColor: colors.cardBorderLight,
     },
     iconWrap: {
         width: 44,
@@ -174,9 +179,10 @@ const s = StyleSheet.create({
         alignItems: "center",
     },
     cardBody: { flex: 1, gap: 2 },
-    cardTitle: { fontSize: 15, fontWeight: "600", color: "#111" },
+    cardTitle: { fontSize: 15, fontWeight: "600", color: colors.text },
     pinRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-    pinName: { fontSize: 12, color: "#2E9E6B", fontWeight: "500" },
-    cardSub: { fontSize: 13, color: "#888", marginTop: 2 },
-    date: { fontSize: 11, color: "#bbb", marginTop: 4 },
+    pinName: { fontSize: 12, color: colors.primary, fontWeight: "500" },
+    cardSub: { fontSize: 13, color: colors.textPlaceholder, marginTop: 2 },
+    date: { fontSize: 11, color: colors.textDate, marginTop: 4 },
 });
+}

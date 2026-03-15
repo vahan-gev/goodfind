@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from "react";
+import { useTheme } from "../theme/ThemeContext";
+import type { ThemeColors } from "../theme/colors";
 import {
     ActivityIndicator,
     Alert,
@@ -147,6 +149,8 @@ export function PinDetailModal({
     }, [currentUser, pin]);
 
     const isReported = alreadyFlagged || justReported;
+    const { colors } = useTheme();
+    const st = useMemo(() => createStyles(colors), [colors]);
 
     if (!pin) return null;
 
@@ -341,7 +345,7 @@ export function PinDetailModal({
                             style={st.headerSideBtn}
                             activeOpacity={0.6}
                         >
-                            <ChevronLeft size={24} color="#111" />
+                            <ChevronLeft size={24} color={colors.icon} />
                         </TouchableOpacity>
                     ) : (
                         <View style={{ width: 36 }} />
@@ -352,7 +356,7 @@ export function PinDetailModal({
                         style={st.headerSideBtn}
                         activeOpacity={0.6}
                     >
-                        <X size={22} color="#666" />
+                        <X size={22} color={colors.textCaption} />
                     </TouchableOpacity>
                 </View>
 
@@ -393,7 +397,7 @@ export function PinDetailModal({
                                     {!isOwner &&
                                         (isReported ? (
                                             <View style={st.actionCircle}>
-                                                <Flag size={22} color="#999" />
+                                                <Flag size={22} color={colors.textDisabled} />
                                             </View>
                                         ) : (
                                             <TouchableOpacity
@@ -409,7 +413,7 @@ export function PinDetailModal({
                                             >
                                                 <Flag
                                                     size={22}
-                                                    color="#F59E0B"
+                                                    color={colors.accent}
                                                 />
                                             </TouchableOpacity>
                                         ))}
@@ -419,7 +423,7 @@ export function PinDetailModal({
                                             onPress={handleDelete}
                                             activeOpacity={0.6}
                                         >
-                                            <Trash2 size={22} color="#DC2626" />
+                                            <Trash2 size={22} color={colors.destructive} />
                                         </TouchableOpacity>
                                     )}
                                     <TouchableOpacity
@@ -429,8 +433,8 @@ export function PinDetailModal({
                                     >
                                         <Bookmark
                                             size={22}
-                                            color={isSaved ? "#2E9E6B" : "#999"}
-                                            fill={isSaved ? "#2E9E6B" : "none"}
+                                            color={isSaved ? colors.primary : colors.textDisabled}
+                                            fill={isSaved ? colors.primary : "none"}
                                             strokeWidth={2}
                                         />
                                     </TouchableOpacity>
@@ -442,7 +446,7 @@ export function PinDetailModal({
 
                         {pin.address ? (
                             <View style={st.addressCard}>
-                                <MapPinned size={16} color="#888" />
+                                <MapPinned size={16} color={colors.iconMuted} />
                                 <Text style={st.addressText} numberOfLines={2}>
                                     {pin.address}
                                 </Text>
@@ -451,14 +455,14 @@ export function PinDetailModal({
                                     style={st.addressAction}
                                     activeOpacity={0.6}
                                 >
-                                    <Copy size={16} color="#2E9E6B" />
+                                    <Copy size={16} color={colors.primary} />
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     onPress={openInMaps}
                                     style={st.addressAction}
                                     activeOpacity={0.6}
                                 >
-                                    <ExternalLink size={16} color="#2E9E6B" />
+                                    <ExternalLink size={16} color={colors.primary} />
                                 </TouchableOpacity>
                             </View>
                         ) : null}
@@ -480,7 +484,7 @@ export function PinDetailModal({
                                 />
                             ) : (
                                 <View style={st.authorAvatarPlaceholder}>
-                                    <User size={16} color="#fff" />
+                                    <User size={16} color={colors.onPrimary} />
                                 </View>
                             )}
                             <Text style={st.authorName}>
@@ -490,7 +494,7 @@ export function PinDetailModal({
                         </TouchableOpacity>
 
                         <View style={st.sectionHeader}>
-                            <Tag size={16} color="#2E9E6B" />
+                            <Tag size={16} color={colors.primary} />
                             <Text style={st.sectionTitle}>Deals</Text>
                             {isSignedIn && (
                                 <TouchableOpacity
@@ -498,7 +502,7 @@ export function PinDetailModal({
                                     style={st.addDealBtn}
                                     activeOpacity={0.7}
                                 >
-                                    <Plus size={16} color="#2E9E6B" />
+                                    <Plus size={16} color={colors.primary} />
                                     <Text style={st.addDealBtnText}>Add</Text>
                                 </TouchableOpacity>
                             )}
@@ -533,7 +537,7 @@ export function PinDetailModal({
                                                 >
                                                     <User
                                                         size={12}
-                                                        color="#fff"
+                                                        color={colors.onPrimary}
                                                     />
                                                 </View>
                                             )}
@@ -558,7 +562,7 @@ export function PinDetailModal({
                                                             >
                                                                 <Flag
                                                                     size={20}
-                                                                    color="#999"
+                                                                    color={colors.textDisabled}
                                                                 />
                                                             </View>
                                                         ) : (
@@ -583,7 +587,7 @@ export function PinDetailModal({
                                                             >
                                                                 <Flag
                                                                     size={20}
-                                                                    color="#F59E0B"
+                                                                    color={colors.accent}
                                                                 />
                                                             </TouchableOpacity>
                                                         ))}
@@ -601,7 +605,7 @@ export function PinDetailModal({
                                                         >
                                                             <Trash2
                                                                 size={20}
-                                                                color="#DC2626"
+                                                                color={colors.destructive}
                                                             />
                                                         </TouchableOpacity>
                                                     )}
@@ -616,7 +620,7 @@ export function PinDetailModal({
                                             <View style={st.dealMetaItem}>
                                                 <CalendarDays
                                                     size={13}
-                                                    color="#888"
+                                                    color={colors.iconMuted}
                                                 />
                                                 <Text style={st.dealMetaText}>
                                                     {formatDaysLabel(
@@ -629,7 +633,7 @@ export function PinDetailModal({
                                                 <View style={st.dealMetaItem}>
                                                     <Timer
                                                         size={13}
-                                                        color="#888"
+                                                        color={colors.iconMuted}
                                                     />
                                                     <Text
                                                         style={st.dealMetaText}
@@ -663,7 +667,7 @@ export function PinDetailModal({
                         <TextInput
                             style={st.input}
                             placeholder="e.g. 50% off organic produce"
-                            placeholderTextColor="#aaa"
+                            placeholderTextColor={colors.textPlaceholder}
                             value={dealTitle}
                             onChangeText={setDealTitle}
                         />
@@ -672,7 +676,7 @@ export function PinDetailModal({
                         <TextInput
                             style={[st.input, st.textArea]}
                             placeholder="Details..."
-                            placeholderTextColor="#aaa"
+                            placeholderTextColor={colors.textPlaceholder}
                             value={dealDesc}
                             onChangeText={setDealDesc}
                             multiline
@@ -747,7 +751,7 @@ export function PinDetailModal({
                             activeOpacity={0.8}
                         >
                             {dealSubmitting ? (
-                                <ActivityIndicator color="#fff" />
+                                <ActivityIndicator color={colors.onPrimary} />
                             ) : (
                                 <Text style={st.submitBtnText}>Add Deal</Text>
                             )}
@@ -788,7 +792,7 @@ export function PinDetailModal({
                         <TextInput
                             style={[st.input, st.textArea]}
                             placeholder="Describe the issue..."
-                            placeholderTextColor="#aaa"
+                            placeholderTextColor={colors.textPlaceholder}
                             value={flagNote}
                             onChangeText={setFlagNote}
                             multiline
@@ -810,7 +814,7 @@ export function PinDetailModal({
                             activeOpacity={0.8}
                         >
                             {flagSubmitting ? (
-                                <ActivityIndicator color="#fff" />
+                                <ActivityIndicator color={colors.onPrimary} />
                             ) : (
                                 <Text style={st.submitBtnText}>
                                     Submit Report
@@ -824,8 +828,9 @@ export function PinDetailModal({
     );
 }
 
-const st = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#fff" },
+function createStyles(colors: ThemeColors) {
+    return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
     header: {
         flexDirection: "row",
         alignItems: "center",
@@ -834,12 +839,12 @@ const st = StyleSheet.create({
         paddingTop: 20,
         paddingBottom: 16,
         borderBottomWidth: 1,
-        borderBottomColor: "#f0f0f0",
+        borderBottomColor: colors.cardBorderLight,
     },
     headerTitle: {
         fontSize: 20,
         fontWeight: "700",
-        color: "#111",
+        color: colors.text,
         flex: 1,
         textAlign: "center",
     },
@@ -847,7 +852,7 @@ const st = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: "#f5f5f5",
+        backgroundColor: colors.backgroundSecondary,
         justifyContent: "center",
         alignItems: "center",
     },
@@ -867,7 +872,7 @@ const st = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
-    pinName: { fontSize: 20, fontWeight: "700", color: "#111" },
+    pinName: { fontSize: 20, fontWeight: "700", color: colors.text },
     badge: {
         alignSelf: "flex-start",
         paddingHorizontal: 10,
@@ -880,13 +885,13 @@ const st = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: "#F5F5F5",
+        backgroundColor: colors.backgroundSecondary,
         justifyContent: "center",
         alignItems: "center",
     },
     description: {
         fontSize: 15,
-        color: "#444",
+        color: colors.textMuted,
         lineHeight: 22,
         marginBottom: 14,
     },
@@ -894,19 +899,19 @@ const st = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
-        backgroundColor: "#F9FAFB",
+        backgroundColor: colors.backgroundQuaternary,
         borderWidth: 1,
-        borderColor: "#eee",
+        borderColor: colors.borderLighter,
         borderRadius: 12,
         padding: 12,
         marginBottom: 14,
     },
-    addressText: { flex: 1, fontSize: 14, color: "#555", lineHeight: 20 },
+    addressText: { flex: 1, fontSize: 14, color: colors.textSubtitle, lineHeight: 20 },
     addressAction: {
         width: 32,
         height: 32,
         borderRadius: 8,
-        backgroundColor: "#2E9E6B18",
+        backgroundColor: colors.primaryTint,
         justifyContent: "center",
         alignItems: "center",
     },
@@ -914,9 +919,9 @@ const st = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
-        backgroundColor: "#F9FAFB",
+        backgroundColor: colors.backgroundQuaternary,
         borderWidth: 1,
-        borderColor: "#eee",
+        borderColor: colors.borderLighter,
         borderRadius: 12,
         padding: 12,
         marginBottom: 14,
@@ -926,12 +931,12 @@ const st = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: "#2E9E6B",
+        backgroundColor: colors.primary,
         justifyContent: "center",
         alignItems: "center",
     },
-    authorName: { flex: 1, fontSize: 15, fontWeight: "600", color: "#222" },
-    authorHint: { fontSize: 12, color: "#2E9E6B", fontWeight: "500" },
+    authorName: { flex: 1, fontSize: 15, fontWeight: "600", color: colors.textSecondary },
+    authorHint: { fontSize: 12, color: colors.primary, fontWeight: "500" },
     actionRow: { flexDirection: "row", gap: 8 },
     sectionHeader: {
         flexDirection: "row",
@@ -939,29 +944,29 @@ const st = StyleSheet.create({
         gap: 8,
         marginBottom: 12,
         borderTopWidth: 1,
-        borderTopColor: "#f0f0f0",
+        borderTopColor: colors.cardBorderLight,
         paddingTop: 16,
     },
     sectionTitle: {
         fontSize: 17,
         fontWeight: "700",
-        color: "#111",
+        color: colors.text,
         flex: 1,
     },
     addDealBtn: {
         flexDirection: "row",
         alignItems: "center",
         gap: 4,
-        backgroundColor: "#2E9E6B18",
+        backgroundColor: colors.primaryTint,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 8,
     },
-    addDealBtnText: { color: "#2E9E6B", fontWeight: "600", fontSize: 13 },
+    addDealBtnText: { color: colors.primary, fontWeight: "600", fontSize: 13 },
     dealCard: {
-        backgroundColor: "#FAFAFA",
+        backgroundColor: colors.card,
         borderWidth: 1,
-        borderColor: "#eee",
+        borderColor: colors.borderLighter,
         borderRadius: 12,
         padding: 14,
         marginBottom: 10,
@@ -973,7 +978,7 @@ const st = StyleSheet.create({
         gap: 8,
     },
     dealActions: { flexDirection: "row", gap: 8 },
-    dealTitle: { fontSize: 15, fontWeight: "700", color: "#222", flex: 1 },
+    dealTitle: { fontSize: 15, fontWeight: "700", color: colors.textSecondary, flex: 1 },
     dealAuthorRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -985,12 +990,12 @@ const st = StyleSheet.create({
         width: 24,
         height: 24,
         borderRadius: 12,
-        backgroundColor: "#2E9E6B",
+        backgroundColor: colors.primary,
         justifyContent: "center",
         alignItems: "center",
     },
-    dealAuthorName: { fontSize: 12, color: "#666", fontWeight: "500" },
-    dealDesc: { fontSize: 14, color: "#555", marginTop: 6, lineHeight: 20 },
+    dealAuthorName: { fontSize: 12, color: colors.textCaption, fontWeight: "500" },
+    dealDesc: { fontSize: 14, color: colors.textSubtitle, marginTop: 6, lineHeight: 20 },
     dealMeta: {
         flexDirection: "row",
         flexWrap: "wrap",
@@ -998,30 +1003,30 @@ const st = StyleSheet.create({
         marginTop: 10,
     },
     dealMetaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-    dealMetaText: { fontSize: 12, color: "#888" },
+    dealMetaText: { fontSize: 12, color: colors.textPlaceholder },
     emptyDeals: {
         fontSize: 14,
-        color: "#aaa",
+        color: colors.textPlaceholder,
         textAlign: "center",
         paddingVertical: 20,
     },
     label: {
         fontSize: 14,
         fontWeight: "600",
-        color: "#333",
+        color: colors.textTertiary,
         marginTop: 12,
         marginBottom: 6,
     },
-    hint: { fontWeight: "400", color: "#aaa", fontSize: 12 },
+    hint: { fontWeight: "400", color: colors.textPlaceholder, fontSize: 12 },
     input: {
         borderWidth: 1,
-        borderColor: "#ddd",
+        borderColor: colors.inputBorder,
         borderRadius: 10,
         paddingHorizontal: 14,
         paddingVertical: 12,
         fontSize: 15,
-        color: "#111",
-        backgroundColor: "#fafafa",
+        color: colors.text,
+        backgroundColor: colors.inputBg,
     },
     textArea: { minHeight: 72, textAlignVertical: "top" },
     chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
@@ -1030,27 +1035,28 @@ const st = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: "#ddd",
-        backgroundColor: "#fff",
+        borderColor: colors.inputBorder,
+        backgroundColor: colors.background,
     },
-    chipActive: { backgroundColor: "#2E9E6B", borderColor: "#2E9E6B" },
-    chipFlagActive: { backgroundColor: "#F59E0B", borderColor: "#F59E0B" },
-    chipText: { fontSize: 13, color: "#555", fontWeight: "500" },
-    chipTextActive: { color: "#fff", fontWeight: "700" },
+    chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+    chipFlagActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+    chipText: { fontSize: 13, color: colors.textSubtitle, fontWeight: "500" },
+    chipTextActive: { color: colors.onPrimary, fontWeight: "700" },
     submitBtn: {
-        backgroundColor: "#2E9E6B",
+        backgroundColor: colors.primary,
         borderRadius: 12,
         paddingVertical: 16,
         alignItems: "center",
         marginTop: 20,
     },
     submitBtnDisabled: { opacity: 0.45 },
-    submitBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+    submitBtnText: { color: colors.onPrimary, fontSize: 16, fontWeight: "700" },
     flagSubmitBtn: {
-        backgroundColor: "#F59E0B",
+        backgroundColor: colors.accent,
         borderRadius: 12,
         paddingVertical: 16,
         alignItems: "center",
         marginTop: 20,
     },
 });
+}

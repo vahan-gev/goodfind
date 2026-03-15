@@ -1,7 +1,7 @@
 import { useAuth, useUser } from "@clerk/expo";
 import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
     StyleSheet,
     Text,
@@ -14,10 +14,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { GoogleSignInButton } from "../../components/GoogleSignInButton";
 import { BadgesSection } from "../../components/BadgesSection";
+import { useTheme } from "../../theme/ThemeContext";
+import type { ThemeColors } from "../../theme/colors";
 
 const appLogo = require("../../assets/logo/logo.png");
 
-function SignInScreen() {
+function SignInScreen({ styles }: { styles: ReturnType<typeof createStyles> }) {
     return (
         <View style={styles.authContainer}>
             <Image source={appLogo} style={styles.logo} />
@@ -31,7 +33,7 @@ function SignInScreen() {
     );
 }
 
-function UserProfile() {
+function UserProfile({ styles }: { styles: ReturnType<typeof createStyles> }) {
     const { user } = useUser();
     const { signOut } = useAuth();
     const { isAuthenticated } = useConvexAuth();
@@ -67,7 +69,6 @@ function UserProfile() {
 
     return (
         <ScrollView contentContainerStyle={styles.profileContainer}>
-            <Image source={appLogo} style={styles.logoSmall} />
             {avatarUrl ? (
                 <Image source={{ uri: avatarUrl }} style={styles.avatar} />
             ) : (
@@ -131,18 +132,21 @@ function UserProfile() {
 
 export function ProfileScreen() {
     const { isSignedIn } = useAuth();
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
 
     return (
         <SafeAreaView style={styles.container}>
-            {isSignedIn ? <UserProfile /> : <SignInScreen />}
+            {isSignedIn ? <UserProfile styles={styles} /> : <SignInScreen styles={styles} />}
         </SafeAreaView>
     );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+    return StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#fff",
+        backgroundColor: colors.background,
     },
     centered: {
         flex: 1,
@@ -171,13 +175,13 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28,
         fontWeight: "700",
-        color: "#111",
+        color: colors.text,
         textAlign: "center",
         marginBottom: 4,
     },
     subtitle: {
         fontSize: 15,
-        color: "#666",
+        color: colors.textCaption,
         textAlign: "center",
         marginBottom: 24,
     },
@@ -196,27 +200,27 @@ const styles = StyleSheet.create({
         width: 96,
         height: 96,
         borderRadius: 48,
-        backgroundColor: "#2E9E6B",
+        backgroundColor: colors.primary,
         justifyContent: "center",
         alignItems: "center",
     },
     avatarInitial: {
-        color: "#fff",
+        color: colors.onPrimary,
         fontSize: 36,
         fontWeight: "700",
     },
     displayName: {
         fontSize: 24,
         fontWeight: "700",
-        color: "#111",
+        color: colors.text,
     },
     email: {
         fontSize: 15,
-        color: "#666",
+        color: colors.textCaption,
     },
     bio: {
         fontSize: 15,
-        color: "#444",
+        color: colors.textMuted,
         textAlign: "center",
         marginTop: 4,
     },
@@ -232,29 +236,30 @@ const styles = StyleSheet.create({
     statDivider: {
         width: 1,
         height: 32,
-        backgroundColor: "#e0e0e0",
+        backgroundColor: colors.border,
     },
     statNumber: {
         fontSize: 20,
         fontWeight: "700",
-        color: "#111",
+        color: colors.text,
     },
     statLabel: {
         fontSize: 13,
-        color: "#666",
+        color: colors.textCaption,
         marginTop: 2,
     },
     signOutButton: {
         marginTop: 24,
         borderWidth: 1,
-        borderColor: "#DC2626",
+        borderColor: colors.destructive,
         borderRadius: 12,
         paddingVertical: 12,
         paddingHorizontal: 32,
     },
     signOutText: {
-        color: "#DC2626",
+        color: colors.destructiveText,
         fontSize: 16,
         fontWeight: "600",
     },
 });
+}

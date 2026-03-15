@@ -1,4 +1,6 @@
 import React, { useMemo } from "react";
+import { useTheme } from "../../theme/ThemeContext";
+import type { ThemeColors } from "../../theme/colors";
 import {
     ActivityIndicator,
     Alert,
@@ -19,6 +21,8 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { BadgesSection } from "../../components/BadgesSection";
 
 export function UserProfileScreen() {
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const route = useRoute<any>();
     const navigation = useNavigation();
     const { userId } = route.params as { userId: string };
@@ -78,7 +82,7 @@ export function UserProfileScreen() {
                     style={styles.backBtn}
                     activeOpacity={0.7}
                 >
-                    <ChevronLeft size={24} color="#111" />
+                    <ChevronLeft size={24} color={colors.icon} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Profile</Text>
                 <View style={styles.backBtn} />
@@ -97,7 +101,7 @@ export function UserProfileScreen() {
                         />
                     ) : (
                         <View style={styles.avatarPlaceholder}>
-                            <User size={36} color="#fff" />
+                            <User size={36} color={colors.onPrimary} />
                         </View>
                     )}
 
@@ -147,7 +151,7 @@ export function UserProfileScreen() {
                         >
                             <ShieldBan
                                 size={18}
-                                color={isBlocked ? "#fff" : "#DC2626"}
+                                color={isBlocked ? colors.onPrimary : colors.destructive}
                             />
                             <Text
                                 style={[
@@ -170,8 +174,9 @@ export function UserProfileScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#fff" },
+function createStyles(colors: ThemeColors) {
+    return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
     header: {
         flexDirection: "row",
         alignItems: "center",
@@ -180,9 +185,9 @@ const styles = StyleSheet.create({
         paddingTop: 8,
         paddingBottom: 16,
         borderBottomWidth: 1,
-        borderBottomColor: "#f0f0f0",
+        borderBottomColor: colors.cardBorderLight,
     },
-    headerTitle: { fontSize: 18, fontWeight: "700", color: "#111" },
+    headerTitle: { fontSize: 18, fontWeight: "700", color: colors.text },
     backBtn: {
         width: 40,
         height: 40,
@@ -203,12 +208,12 @@ const styles = StyleSheet.create({
         width: 96,
         height: 96,
         borderRadius: 48,
-        backgroundColor: "#2E9E6B",
+        backgroundColor: colors.primary,
         justifyContent: "center",
         alignItems: "center",
     },
-    name: { fontSize: 24, fontWeight: "700", color: "#111", marginTop: 8 },
-    email: { fontSize: 14, color: "#666" },
+    name: { fontSize: 24, fontWeight: "700", color: colors.text, marginTop: 8 },
+    email: { fontSize: 14, color: colors.textCaption },
     statsRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -219,22 +224,23 @@ const styles = StyleSheet.create({
     statDivider: {
         width: 1,
         height: 32,
-        backgroundColor: "#e0e0e0",
+        backgroundColor: colors.border,
     },
-    statNum: { fontSize: 20, fontWeight: "700", color: "#111" },
-    statLabel: { fontSize: 13, color: "#888", marginTop: 2 },
+    statNum: { fontSize: 20, fontWeight: "700", color: colors.text },
+    statLabel: { fontSize: 13, color: colors.textPlaceholder, marginTop: 2 },
     blockBtn: {
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
         marginTop: 24,
         borderWidth: 1,
-        borderColor: "#DC2626",
+        borderColor: colors.destructive,
         borderRadius: 12,
         paddingVertical: 14,
         paddingHorizontal: 28,
     },
-    blockBtnActive: { backgroundColor: "#DC2626", borderColor: "#DC2626" },
-    blockBtnText: { fontSize: 16, fontWeight: "600", color: "#DC2626" },
-    blockBtnTextActive: { color: "#fff" },
+    blockBtnActive: { backgroundColor: colors.destructive, borderColor: colors.destructive },
+    blockBtnText: { fontSize: 16, fontWeight: "600", color: colors.destructiveText },
+    blockBtnTextActive: { color: colors.onPrimary },
 });
+}

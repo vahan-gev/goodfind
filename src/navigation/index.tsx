@@ -16,8 +16,6 @@ import { UserDealsScreen } from "./screens/UserDealsScreen";
 const HomeTabs = createBottomTabNavigator({
     screenOptions: {
         headerShown: false,
-        tabBarActiveTintColor: "#2E9E6B",
-        tabBarInactiveTintColor: "#999",
     },
     screens: {
         Map: {

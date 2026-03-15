@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTheme } from "../../theme/ThemeContext";
+import type { ThemeColors } from "../../theme/colors";
 import {
     ActivityIndicator,
     Alert,
@@ -68,6 +70,8 @@ const FILTER_PILLS: { key: FilterKey; label: string; color: string }[] = [
 ];
 
 export function MapScreen() {
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const mapRef = useRef<MapView>(null);
     const navigation = useNavigation();
     const route = useRoute<any>();
@@ -502,11 +506,11 @@ export function MapScreen() {
                         searchFocused && styles.searchBarFocused,
                     ]}
                 >
-                    <Search size={18} color="#888" />
+                    <Search size={18} color={colors.iconMuted} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search pins..."
-                        placeholderTextColor="#aaa"
+                        placeholderTextColor={colors.textPlaceholder}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                         onFocus={() => setSearchFocused(true)}
@@ -518,7 +522,7 @@ export function MapScreen() {
                             onPress={() => setSearchQuery("")}
                             activeOpacity={0.6}
                         >
-                            <X size={18} color="#888" />
+                            <X size={18} color={colors.iconMuted} />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -567,7 +571,7 @@ export function MapScreen() {
                 onPress={handleAddPinFab}
                 activeOpacity={0.7}
             >
-                <Plus size={26} color="#fff" strokeWidth={2.5} />
+                <Plus size={26} color={colors.onPrimary} strokeWidth={2.5} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -575,7 +579,7 @@ export function MapScreen() {
                 onPress={recenter}
                 activeOpacity={0.7}
             >
-                <LocateFixed size={24} color="#2E9E6B" />
+                <LocateFixed size={24} color={colors.primary} />
             </TouchableOpacity>
 
             <BottomSheet
@@ -588,6 +592,8 @@ export function MapScreen() {
                 keyboardBehavior="fillParent"
                 keyboardBlurBehavior="none"
                 android_keyboardInputMode="adjustResize"
+                backgroundStyle={{ backgroundColor: colors.background }}
+                handleIndicatorStyle={{ backgroundColor: colors.textPlaceholder }}
             >
                 {isSignedIn ? (
                     addStep === "address" ? (
@@ -603,7 +609,7 @@ export function MapScreen() {
                             >
                                 <MapPinPlus
                                     size={28}
-                                    color="#2E9E6B"
+                                    color={colors.primary}
                                     strokeWidth={2.5}
                                 />
                             </View>
@@ -616,7 +622,7 @@ export function MapScreen() {
                             <BottomSheetTextInput
                                 style={styles.input}
                                 placeholder="Search for an address..."
-                                placeholderTextColor="#aaa"
+                                placeholderTextColor={colors.textPlaceholder}
                                 value={addrQuery}
                                 onChangeText={(t) => {
                                     setAddrQuery(t);
@@ -646,7 +652,7 @@ export function MapScreen() {
                                         >
                                             <Navigation
                                                 size={16}
-                                                color="#2E9E6B"
+                                                color={colors.primary}
                                             />
                                             <Text
                                                 style={styles.suggestionText}
@@ -661,7 +667,7 @@ export function MapScreen() {
 
                             {addrSelected && (
                                 <View style={styles.selectedAddrBox}>
-                                    <MapPin size={16} color="#2E9E6B" />
+                                    <MapPin size={16} color={colors.primary} />
                                     <Text
                                         style={styles.selectedAddrText}
                                         numberOfLines={2}
@@ -741,7 +747,7 @@ export function MapScreen() {
                             <BottomSheetTextInput
                                 style={styles.input}
                                 placeholder="e.g. Downtown Food Pantry"
-                                placeholderTextColor="#aaa"
+                                placeholderTextColor={colors.textPlaceholder}
                                 value={name}
                                 onChangeText={setName}
                             />
@@ -749,7 +755,7 @@ export function MapScreen() {
                             <BottomSheetTextInput
                                 style={[styles.input, styles.textArea]}
                                 placeholder="Hours, what's available, any details..."
-                                placeholderTextColor="#aaa"
+                                placeholderTextColor={colors.textPlaceholder}
                                 value={description}
                                 onChangeText={setDescription}
                                 multiline
@@ -758,7 +764,7 @@ export function MapScreen() {
                             <BottomSheetTextInput
                                 style={styles.input}
                                 placeholder="Auto-filled from location"
-                                placeholderTextColor="#aaa"
+                                placeholderTextColor={colors.textPlaceholder}
                                 value={address}
                                 onChangeText={setAddress}
                             />
@@ -774,7 +780,7 @@ export function MapScreen() {
                                 activeOpacity={0.8}
                             >
                                 {submitting ? (
-                                    <ActivityIndicator color="#fff" />
+                                    <ActivityIndicator color={colors.onPrimary} />
                                 ) : (
                                     <Text style={styles.submitButtonText}>
                                         Add Pin
@@ -788,7 +794,7 @@ export function MapScreen() {
                         <View style={styles.sheetIconCircle}>
                             <MapPin
                                 size={28}
-                                color="#2E9E6B"
+                                color={colors.primary}
                                 strokeWidth={2.5}
                             />
                         </View>
@@ -820,7 +826,8 @@ export function MapScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ThemeColors) {
+    return StyleSheet.create({
     container: { flex: 1 },
     map: { width: "100%", height: "100%" },
     loading: { flex: 1, justifyContent: "center", alignItems: "center" },
@@ -831,20 +838,20 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
-        backgroundColor: "#fff",
+        backgroundColor: colors.background,
         borderRadius: 14,
         paddingHorizontal: 14,
         paddingVertical: 10,
         borderWidth: 1.5,
         borderColor: "transparent",
-        shadowColor: "#000",
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.12,
         shadowRadius: 6,
         elevation: 4,
     },
-    searchBarFocused: { borderColor: "#2E9E6B" },
-    searchInput: { flex: 1, fontSize: 15, color: "#111", paddingVertical: 0 },
+    searchBarFocused: { borderColor: colors.primary },
+    searchInput: { flex: 1, fontSize: 15, color: colors.text, paddingVertical: 0 },
 
     filterScroll: { marginTop: 10 },
     filterRow: { gap: 8, paddingRight: 8 },
@@ -855,28 +862,28 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 7,
         borderRadius: 20,
-        backgroundColor: "#fff",
+        backgroundColor: colors.background,
         borderWidth: 1.5,
-        borderColor: "#e0e0e0",
-        shadowColor: "#000",
+        borderColor: colors.border,
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.08,
         shadowRadius: 2,
         elevation: 2,
     },
-    filterPillText: { fontSize: 13, fontWeight: "600", color: "#555" },
+    filterPillText: { fontSize: 13, fontWeight: "600", color: colors.textSubtitle },
 
     addPinButton: {
         position: "absolute",
         bottom: 80,
         right: 16,
-        backgroundColor: "#2E9E6B",
+        backgroundColor: colors.primary,
         width: 48,
         height: 48,
         borderRadius: 24,
         justifyContent: "center",
         alignItems: "center",
-        shadowColor: "#000",
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 4,
@@ -886,13 +893,13 @@ const styles = StyleSheet.create({
         position: "absolute",
         bottom: 24,
         right: 16,
-        backgroundColor: "#fff",
+        backgroundColor: colors.background,
         width: 48,
         height: 48,
         borderRadius: 24,
         justifyContent: "center",
         alignItems: "center",
-        shadowColor: "#000",
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 4,
@@ -903,19 +910,19 @@ const styles = StyleSheet.create({
     formTitle: {
         fontSize: 22,
         fontWeight: "700",
-        color: "#111",
+        color: colors.text,
         textAlign: "center",
     },
     formSubtitle: {
         fontSize: 14,
-        color: "#888",
+        color: colors.textPlaceholder,
         textAlign: "center",
         marginBottom: 12,
     },
     label: {
         fontSize: 14,
         fontWeight: "600",
-        color: "#333",
+        color: colors.textTertiary,
         marginTop: 8,
         marginBottom: 4,
     },
@@ -933,30 +940,30 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         borderRadius: 10,
         borderWidth: 1.5,
-        borderColor: "#e0e0e0",
-        backgroundColor: "#fafafa",
+        borderColor: colors.border,
+        backgroundColor: colors.backgroundTertiary,
     },
-    categoryLabel: { fontSize: 13, color: "#555", fontWeight: "500" },
+    categoryLabel: { fontSize: 13, color: colors.textSubtitle, fontWeight: "500" },
     input: {
         borderWidth: 1,
-        borderColor: "#ddd",
+        borderColor: colors.inputBorder,
         borderRadius: 10,
         paddingHorizontal: 14,
         paddingVertical: 12,
         fontSize: 15,
-        color: "#111",
-        backgroundColor: "#fafafa",
+        color: colors.text,
+        backgroundColor: colors.inputBg,
     },
     textArea: { minHeight: 72, textAlignVertical: "top" },
     submitButton: {
-        backgroundColor: "#2E9E6B",
+        backgroundColor: colors.primary,
         borderRadius: 12,
         paddingVertical: 16,
         alignItems: "center",
         marginTop: 16,
     },
     submitButtonDisabled: { opacity: 0.45 },
-    submitButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+    submitButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: "700" },
 
     sheetSignIn: {
         alignItems: "center",
@@ -969,7 +976,7 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: "#2E9E6B18",
+        backgroundColor: colors.primaryTint,
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 4,
@@ -977,12 +984,12 @@ const styles = StyleSheet.create({
     sheetSignInTitle: {
         fontSize: 22,
         fontWeight: "700",
-        color: "#111",
+        color: colors.text,
         textAlign: "center",
     },
     sheetSignInSubtitle: {
         fontSize: 14,
-        color: "#666",
+        color: colors.textCaption,
         textAlign: "center",
         lineHeight: 20,
         marginBottom: 8,
@@ -993,8 +1000,8 @@ const styles = StyleSheet.create({
         marginTop: 8,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: "#e8e8e8",
-        backgroundColor: "#fff",
+        borderColor: colors.borderLight,
+        backgroundColor: colors.background,
         overflow: "hidden",
     },
     suggestionItem: {
@@ -1004,9 +1011,9 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         paddingHorizontal: 14,
         borderBottomWidth: 1,
-        borderBottomColor: "#f0f0f0",
+        borderBottomColor: colors.cardBorderLight,
     },
-    suggestionText: { flex: 1, fontSize: 14, color: "#333" },
+    suggestionText: { flex: 1, fontSize: 14, color: colors.textTertiary },
     selectedAddrBox: {
         flexDirection: "row",
         alignItems: "center",
@@ -1015,21 +1022,22 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 14,
         borderRadius: 10,
-        backgroundColor: "#2E9E6B14",
+        backgroundColor: colors.primaryTintLight,
         borderWidth: 1,
-        borderColor: "#2E9E6B",
+        borderColor: colors.primary,
     },
     selectedAddrText: {
         flex: 1,
         fontSize: 14,
-        color: "#2E9E6B",
+        color: colors.primary,
         fontWeight: "500",
     },
     continueButton: {
-        backgroundColor: "#2E9E6B",
+        backgroundColor: colors.primary,
         borderRadius: 12,
         paddingVertical: 16,
         alignItems: "center",
         marginTop: 20,
     },
 });
+}
